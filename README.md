@@ -1,4 +1,4 @@
-# PJR OSINT Toolkit
+# DrowLink OSINT Toolkit
 
 A small, dependency-free Python CLI that collects **bounded, passive metadata** about a public domain and returns a reproducible JSON report.
 

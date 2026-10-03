@@ -3,13 +3,13 @@ requires = ["hatchling>=1.24"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pjr-osint-toolkit"
+name = "drowlink-osint-toolkit"
 version = "0.1.0"
 description = "A bounded, passive OSINT CLI for public domain metadata"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
-authors = [{name = "PJR Solutions"}]
+authors = [{name = "DrowLink"}]
 keywords = ["osint", "dns", "tls", "security-headers", "reconnaissance"]
 classifiers = [
   "Development Status :: 3 - Alpha",
