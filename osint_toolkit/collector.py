@@ -147,8 +147,9 @@ def _connect_and_request(
             response = http.client.HTTPResponse(stream)
             response.begin()
             body = response.read(_MAX_BODY + 1)
-            if len(body) > _MAX_BODY:
-                raise ValueError("response exceeded the 256 KiB safety limit")
+            truncated = len(body) > _MAX_BODY
+            if truncated:
+                body = body[:_MAX_BODY]
             headers = {key: value for key, value in response.getheaders()}
             lower_headers = {key.lower(): value for key, value in headers.items()}
             encoding = lower_headers.get("content-encoding", "").lower().strip()
@@ -173,7 +174,7 @@ def _connect_and_request(
                 else None
             )
             meta = extract_meta_tags(text)
-            return {
+            result: dict[str, Any] = {
                 "url": url,
                 "status": response.status,
                 "headers": headers,
@@ -181,6 +182,9 @@ def _connect_and_request(
                 "meta": meta,
                 "text": text,
             }
+            if truncated:
+                result["truncated"] = True
+            return result
         except OSError as exc:
             last_error = exc
         finally:
@@ -325,6 +329,8 @@ def _file_summary(result: dict[str, Any], kind: str = "generic") -> dict[str, An
         "url": result.get("url"),
         "snippet": text[:500] if found else "",
     }
+    if result.get("truncated"):
+        summary["truncated"] = True
     if found and kind == "security_txt":
         contacts = _parse_directives(text, ("contact:",))
         expires = _parse_directives(text, ("expires:",))
@@ -378,6 +384,8 @@ def collect_report(
             "meta": home.get("meta", {}),
             "headers": analyze_security_headers(home.get("headers", {})),
         }
+        if home.get("truncated"):
+            web["truncated"] = True
     return {
         "schema_version": 1,
         "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
