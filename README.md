@@ -5,9 +5,9 @@ A small, dependency-free Python CLI that collects **bounded, passive metadata** 
 ## What it collects
 
 - Public IPv4 and IPv6 DNS addresses (IPv6 is metadata-only)
-- Homepage status, title, final URL, server header, and common security-header coverage
-- Verified TLS certificate subject, issuer, expiry, DNS names, and SHA-256 fingerprint
-- Presence and a bounded preview of `/.well-known/security.txt` and `/robots.txt`
+- Homepage status, title, meta tags (description, generator), final URL, server header, cookie security flags, and extended security-header coverage (including COOP, COEP, CORP)
+- Verified TLS certificate subject, issuer, expiry, days remaining, protocol version, cipher suite, DNS names, and SHA-256 fingerprint
+- Presence, key directives (contacts, sitemaps), and a bounded preview of `/.well-known/security.txt` and `/robots.txt`
 
 It does **not** scan ports, brute-force paths, enumerate accounts, bypass access controls, or accept IP/private-network targets.
 
@@ -16,6 +16,7 @@ It does **not** scan ports, brute-force paths, enumerate accounts, bypass access
 - Rejects IP literals, custom ports, local names, every non-public-unicast DNS answer (including multicast), and domains with more than eight distinct addresses
 - Pins outbound HTTP/TLS connections to prevalidated public IPv4 addresses only
 - Verifies TLS certificates and hostnames
+- Transparently supports gzip and deflate decompression using only the standard library
 - Limits each response to 256 KiB and each logical HTTP fetch to three redirects under one monotonic eight-second deadline that includes DNS resolution, connection, TLS, writes, and reads
 - Bounds the initial DNS metadata lookup with its own monotonic eight-second deadline; timed-out resolver work runs only in a daemon thread and cannot keep the CLI alive
 - Makes three logical HTTP fetches, each with at most four URL hops including the initial URL, plus one TLS certificate probe
@@ -38,10 +39,16 @@ Python 3.11 or newer.
 python3 -m osint_toolkit example.com
 ```
 
-Save the JSON report:
+Save the JSON report directly to a file:
 
 ```bash
-python3 -m osint_toolkit example.com > example.com.json
+python3 -m osint_toolkit example.com -o example.com.json
+```
+
+Or customize the deadline timeout (e.g. 5 seconds):
+
+```bash
+python3 -m osint_toolkit example.com -t 5.0
 ```
 
 ## Install locally
@@ -50,7 +57,7 @@ python3 -m osint_toolkit example.com > example.com.json
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install .
-osint-toolkit example.com
+osint-toolkit example.com -o report.json
 ```
 
 ## Example output shape
@@ -60,9 +67,27 @@ osint-toolkit example.com
   "schema_version": 1,
   "target": "example.com",
   "dns": {"addresses": ["93.184.216.34"]},
-  "web": {"status": 200, "title": "Example Domain"},
-  "tls": {"expires": "...", "sha256": "..."},
-  "files": {"security_txt": {}, "robots_txt": {}}
+  "web": {
+    "status": 200,
+    "title": "Example Domain",
+    "meta": {"description": "Example description"},
+    "headers": {
+      "present": ["strict-transport-security"],
+      "missing": ["content-security-policy", "cross-origin-opener-policy"]
+    }
+  },
+  "tls": {
+    "protocol": "TLSv1.3",
+    "cipher": {"name": "TLS_AES_256_GCM_SHA384", "protocol": "TLSv1.3", "bits": 256},
+    "expires": "2026-10-01T00:00:00Z",
+    "days_remaining": 365,
+    "is_expired": false,
+    "sha256": "..."
+  },
+  "files": {
+    "security_txt": {"found": true, "contacts": ["mailto:security@example.com"]},
+    "robots_txt": {"found": true, "sitemaps": ["https://example.com/sitemap.xml"]}
+  }
 }
 ```
 
