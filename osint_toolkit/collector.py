@@ -243,6 +243,8 @@ def probe_tls_certificate(
                 with context.wrap_socket(raw, server_hostname=domain) as secure:
                     certificate = secure.getpeercert()
                     binary = secure.getpeercert(binary_form=True)
+                    protocol = secure.version()
+                    cipher_info = secure.cipher()
             issuer = {
                 key: value
                 for group in certificate.get("issuer", ())
@@ -265,8 +267,6 @@ def probe_tls_certificate(
             now = datetime.now(UTC)
             days_remaining = (expires_dt - now).days
             is_expired = now > expires_dt
-            protocol = secure.version()
-            cipher_info = secure.cipher()
             cipher = (
                 {
                     "name": cipher_info[0],
