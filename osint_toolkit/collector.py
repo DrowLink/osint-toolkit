@@ -25,7 +25,7 @@ from .core import (
     resolve_public_addresses,
 )
 
-_USER_AGENT = "PJR-OSINT-Toolkit/0.1 (+https://github.com/DrowLink/osint-toolkit)"
+_USER_AGENT = "DrowLink-OSINT-Toolkit/0.1 (+https://github.com/DrowLink/osint-toolkit)"
 _MAX_BODY = 262_144
 _MAX_REDIRECTS = 3
 _TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
