@@ -239,6 +239,129 @@ class CollectorTests(unittest.TestCase):
                 self.assertIn("error", report["files"]["security_txt"])
                 self.assertIn("error", report["files"]["robots_txt"])
 
+    def test_parses_security_txt_and_robots_txt_directives(self):
+        def fake_fetch(url):
+            if "security.txt" in url:
+                return {
+                    "url": url,
+                    "status": 200,
+                    "headers": {},
+                    "title": None,
+                    "text": (
+                        "Contact: mailto:security@example.com\n"
+                        "Contact: https://example.com/bounty\n"
+                        "Expires: 2030-12-31T23:59:59.000Z\n"
+                    ),
+                }
+            if "robots.txt" in url:
+                return {
+                    "url": url,
+                    "status": 200,
+                    "headers": {},
+                    "title": None,
+                    "text": (
+                        "User-agent: *\n"
+                        "Disallow: /admin\n"
+                        "Sitemap: https://example.com/sitemap.xml\n"
+                        "Sitemap: https://example.com/sitemap2.xml\n"
+                    ),
+                }
+            return {
+                "url": url,
+                "status": 200,
+                "headers": {},
+                "title": "Home",
+                "text": "<html><head><meta name='description' content='Passive tool'></head></html>",
+                "meta": {"description": "Passive tool"},
+            }
+
+        report = collect_report(
+            "example.com",
+            resolver=lambda _domain, **_kwargs: ["93.184.216.34"],
+            fetcher=fake_fetch,
+            certificate_probe=lambda _domain, _addresses: {"expires": "2030-01-01T00:00:00Z"},
+        )
+
+        sec = report["files"]["security_txt"]
+        self.assertEqual(
+            sec["contacts"],
+            ["mailto:security@example.com", "https://example.com/bounty"],
+        )
+        self.assertEqual(sec["expires"], "2030-12-31T23:59:59.000Z")
+
+        rob = report["files"]["robots_txt"]
+        self.assertEqual(
+            rob["sitemaps"],
+            ["https://example.com/sitemap.xml", "https://example.com/sitemap2.xml"],
+        )
+        self.assertEqual(report["web"]["meta"], {"description": "Passive tool"})
+
+    def test_decompresses_gzip_response(self):
+        import gzip
+        from unittest.mock import MagicMock
+
+        html = b"<html><head><title>Gzipped Page</title></head><body>Compressed content</body></html>"
+        compressed = gzip.compress(html)
+
+        mock_socket = MagicMock()
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.getheaders.return_value = [
+            ("Content-Encoding", "gzip"),
+            ("Content-Type", "text/html; charset=utf-8"),
+        ]
+        mock_response.read.return_value = compressed
+
+        with (
+            patch("osint_toolkit.collector.socket.create_connection", return_value=mock_socket),
+            patch("osint_toolkit.collector._DeadlineSocket", return_value=mock_socket),
+            patch("osint_toolkit.collector.http.client.HTTPResponse", return_value=mock_response),
+        ):
+            result = collector._connect_and_request(
+                "http://example.com/",
+                "example.com",
+                ["93.184.216.34"],
+                deadline=collector.time.monotonic() + 10.0,
+            )
+
+        self.assertEqual(result["status"], 200)
+        self.assertEqual(result["title"], "Gzipped Page")
+        self.assertIn("Compressed content", result["text"])
+
+    def test_probe_tls_certificate_extracts_crypto_details(self):
+        from unittest.mock import MagicMock
+
+        raw_cert = {
+            "subject": ((("commonName", "example.com"),),),
+            "issuer": ((("organizationName", "DigiCert"),),),
+            "notAfter": "Jan 01 00:00:00 2030 GMT",
+            "subjectAltName": (("DNS", "example.com"), ("DNS", "www.example.com")),
+        }
+        mock_raw = MagicMock()
+        mock_raw.__enter__.return_value = mock_raw
+        mock_secure = MagicMock()
+        mock_secure.__enter__.return_value = mock_secure
+        mock_secure.getpeercert.side_effect = lambda binary_form=False: (
+            b"fake_der" if binary_form else raw_cert
+        )
+        mock_secure.version.return_value = "TLSv1.3"
+        mock_secure.cipher.return_value = ("TLS_AES_256_GCM_SHA384", "TLSv1.3", 256)
+
+        mock_context = MagicMock()
+        mock_context.wrap_socket.return_value = mock_secure
+
+        with (
+            patch("osint_toolkit.collector.socket.create_connection", return_value=mock_raw),
+            patch("osint_toolkit.collector.ssl.create_default_context", return_value=mock_context),
+        ):
+            res = probe_tls_certificate("example.com", ["93.184.216.34"])
+
+        self.assertEqual(res["protocol"], "TLSv1.3")
+        self.assertEqual(res["cipher"]["name"], "TLS_AES_256_GCM_SHA384")
+        self.assertEqual(res["cipher"]["bits"], 256)
+        self.assertFalse(res["is_expired"])
+        self.assertGreater(res["days_remaining"], 365)
+
 
 if __name__ == "__main__":
     unittest.main()

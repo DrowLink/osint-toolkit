@@ -123,12 +123,38 @@ def normalize_domain(target: str) -> str:
 
 _SECURITY_HEADERS = (
     "content-security-policy",
+    "cross-origin-embedder-policy",
+    "cross-origin-opener-policy",
+    "cross-origin-resource-policy",
     "permissions-policy",
     "referrer-policy",
     "strict-transport-security",
     "x-content-type-options",
     "x-frame-options",
 )
+
+_META_NAME_CONTENT = re.compile(
+    r'<meta\s+[^>]*?name=["\'](?P<name>[^"\']+)["\'][^>]*?content=["\'](?P<content>[^"\']*)["\']',
+    re.IGNORECASE,
+)
+_META_CONTENT_NAME = re.compile(
+    r'<meta\s+[^>]*?content=["\'](?P<content>[^"\']*)["\'][^>]*?name=["\'](?P<name>[^"\']+)["\']',
+    re.IGNORECASE,
+)
+
+
+def extract_meta_tags(text: str) -> dict[str, str]:
+    """Passively extract meta tags like description and generator from HTML."""
+    meta: dict[str, str] = {}
+    for match in _META_NAME_CONTENT.finditer(text):
+        name = match.group("name").lower()
+        if name in {"description", "generator"} and name not in meta:
+            meta[name] = match.group("content").strip()
+    for match in _META_CONTENT_NAME.finditer(text):
+        name = match.group("name").lower()
+        if name in {"description", "generator"} and name not in meta:
+            meta[name] = match.group("content").strip()
+    return meta
 
 
 def resolve_public_addresses(
@@ -164,8 +190,21 @@ def resolve_public_addresses(
 
 
 def analyze_security_headers(headers: Mapping[str, str]) -> dict[str, Any]:
-    """Summarize common defensive HTTP response headers."""
+    """Summarize common defensive HTTP response headers and cookie flags."""
     normalized = {key.lower(): value for key, value in headers.items()}
     present = sorted(header for header in _SECURITY_HEADERS if normalized.get(header))
     missing = sorted(set(_SECURITY_HEADERS) - set(present))
-    return {"present": present, "missing": missing, "server": normalized.get("server")}
+    result: dict[str, Any] = {
+        "present": present,
+        "missing": missing,
+        "server": normalized.get("server"),
+    }
+    cookie_header = normalized.get("set-cookie")
+    if cookie_header:
+        cookie_lower = cookie_header.lower()
+        result["cookie_security"] = {
+            "has_secure": "secure" in cookie_lower,
+            "has_httponly": "httponly" in cookie_lower,
+            "has_samesite": "samesite" in cookie_lower,
+        }
+    return result

@@ -6,6 +6,7 @@ import unittest
 from osint_toolkit.core import (
     DomainValidationError,
     analyze_security_headers,
+    extract_meta_tags,
     normalize_domain,
     resolve_public_addresses,
 )
@@ -165,7 +166,51 @@ class HeaderTests(unittest.TestCase):
         )
         self.assertEqual(result["present"], ["strict-transport-security"])
         self.assertIn("content-security-policy", result["missing"])
+        self.assertIn("cross-origin-opener-policy", result["missing"])
+        self.assertIn("cross-origin-embedder-policy", result["missing"])
+        self.assertIn("cross-origin-resource-policy", result["missing"])
         self.assertEqual(result["server"], "nginx")
+        self.assertNotIn("cookie_security", result)
+
+    def test_analyzes_cookie_security_flags(self):
+        result = analyze_security_headers(
+            {
+                "Set-Cookie": "session=abc; Secure; HttpOnly; SameSite=Strict",
+            }
+        )
+        self.assertIn("cookie_security", result)
+        self.assertTrue(result["cookie_security"]["has_secure"])
+        self.assertTrue(result["cookie_security"]["has_httponly"])
+        self.assertTrue(result["cookie_security"]["has_samesite"])
+
+        insecure = analyze_security_headers({"Set-Cookie": "tracker=123; path=/"})
+        self.assertIn("cookie_security", insecure)
+        self.assertFalse(insecure["cookie_security"]["has_secure"])
+        self.assertFalse(insecure["cookie_security"]["has_httponly"])
+        self.assertFalse(insecure["cookie_security"]["has_samesite"])
+
+
+class MetaTagTests(unittest.TestCase):
+    def test_extracts_description_and_generator(self):
+        html = (
+            "<html><head>"
+            '<meta name="description" content="A safe OSINT toolkit.">'
+            '<meta name="generator" content="WordPress 6.4">'
+            '<meta name="author" content="Nobody">'
+            "</head><body>Hello</body></html>"
+        )
+        meta = extract_meta_tags(html)
+        self.assertEqual(
+            meta,
+            {
+                "description": "A safe OSINT toolkit.",
+                "generator": "WordPress 6.4",
+            },
+        )
+
+    def test_extracts_meta_when_content_precedes_name(self):
+        html = '<meta content="My Description" name="description">'
+        self.assertEqual(extract_meta_tags(html), {"description": "My Description"})
 
 
 if __name__ == "__main__":

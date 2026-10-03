@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import http.client
 import io
@@ -10,6 +11,7 @@ import re
 import socket
 import ssl
 import time
+import zlib
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
@@ -17,6 +19,7 @@ from urllib.parse import urljoin, urlsplit
 
 from .core import (
     analyze_security_headers,
+    extract_meta_tags,
     is_public_unicast_address,
     normalize_domain,
     resolve_public_addresses,
@@ -137,7 +140,7 @@ def _connect_and_request(
                 f"Host: {domain}\r\n"
                 f"User-Agent: {_USER_AGENT}\r\n"
                 "Accept: text/html,text/plain;q=0.9,*/*;q=0.1\r\n"
-                "Accept-Encoding: identity\r\n"
+                "Accept-Encoding: gzip, deflate, identity\r\n"
                 "Connection: close\r\n\r\n"
             )
             stream.sendall(request.encode("ascii"))
@@ -147,6 +150,20 @@ def _connect_and_request(
             if len(body) > _MAX_BODY:
                 raise ValueError("response exceeded the 256 KiB safety limit")
             headers = {key: value for key, value in response.getheaders()}
+            encoding = headers.get("Content-Encoding", "").lower().strip()
+            if encoding == "gzip":
+                try:
+                    body = gzip.decompress(body)
+                except Exception:
+                    pass
+            elif encoding == "deflate":
+                try:
+                    body = zlib.decompress(body)
+                except Exception:
+                    try:
+                        body = zlib.decompress(body, -zlib.MAX_WBITS)
+                    except Exception:
+                        pass
             text = _decode_body(body, headers.get("Content-Type", ""))
             title_match = _TITLE_RE.search(text)
             title = (
@@ -154,11 +171,13 @@ def _connect_and_request(
                 if title_match
                 else None
             )
+            meta = extract_meta_tags(text)
             return {
                 "url": url,
                 "status": response.status,
                 "headers": headers,
                 "title": title,
+                "meta": meta,
                 "text": text,
             }
         except OSError as exc:
@@ -239,17 +258,32 @@ def probe_tls_certificate(
                 for kind, value in certificate.get("subjectAltName", ())
                 if kind == "DNS"
             ]
-            expires = (
-                datetime.fromtimestamp(
-                    ssl.cert_time_to_seconds(certificate["notAfter"]), tz=UTC
-                )
-                .isoformat()
-                .replace("+00:00", "Z")
+            expires_dt = datetime.fromtimestamp(
+                ssl.cert_time_to_seconds(certificate["notAfter"]), tz=UTC
+            )
+            expires = expires_dt.isoformat().replace("+00:00", "Z")
+            now = datetime.now(UTC)
+            days_remaining = (expires_dt - now).days
+            is_expired = now > expires_dt
+            protocol = secure.version()
+            cipher_info = secure.cipher()
+            cipher = (
+                {
+                    "name": cipher_info[0],
+                    "protocol": cipher_info[1],
+                    "bits": cipher_info[2],
+                }
+                if cipher_info
+                else None
             )
             return {
                 "subject": subject,
                 "issuer": issuer,
                 "expires": expires,
+                "days_remaining": days_remaining,
+                "is_expired": is_expired,
+                "protocol": protocol,
+                "cipher": cipher,
                 "dns_names": sorted(sans),
                 "sha256": hashlib.sha256(binary).hexdigest(),
             }
@@ -267,15 +301,41 @@ def _safe_call(operation: Callable[[], dict[str, Any]]) -> dict[str, Any]:
         return {"error": str(exc)}
 
 
-def _file_summary(result: dict[str, Any]) -> dict[str, Any]:
+def _parse_directives(text: str, prefixes: tuple[str, ...]) -> list[str]:
+    directives: list[str] = []
+    for line in text.splitlines():
+        line = line.strip()
+        for prefix in prefixes:
+            if line.lower().startswith(prefix.lower()):
+                value = line[len(prefix) :].strip(" :")
+                if value and value not in directives:
+                    directives.append(value)
+    return directives
+
+
+def _file_summary(result: dict[str, Any], kind: str = "generic") -> dict[str, Any]:
     if "error" in result:
         return result
-    return {
-        "found": result.get("status") == 200,
+    found = result.get("status") == 200
+    text = result.get("text", "") if found else ""
+    summary: dict[str, Any] = {
+        "found": found,
         "status": result.get("status"),
         "url": result.get("url"),
-        "snippet": result.get("text", "")[:500] if result.get("status") == 200 else "",
+        "snippet": text[:500] if found else "",
     }
+    if found and kind == "security_txt":
+        contacts = _parse_directives(text, ("contact:",))
+        expires = _parse_directives(text, ("expires:",))
+        if contacts:
+            summary["contacts"] = contacts
+        if expires:
+            summary["expires"] = expires[0]
+    elif found and kind == "robots_txt":
+        sitemaps = _parse_directives(text, ("sitemap:",))
+        if sitemaps:
+            summary["sitemaps"] = sitemaps
+    return summary
 
 
 def collect_report(
@@ -314,6 +374,7 @@ def collect_report(
             "url": home["url"],
             "status": home["status"],
             "title": home.get("title"),
+            "meta": home.get("meta", {}),
             "headers": analyze_security_headers(home.get("headers", {})),
         }
     return {
@@ -324,7 +385,7 @@ def collect_report(
         "web": web,
         "tls": tls,
         "files": {
-            "security_txt": _file_summary(security_txt),
-            "robots_txt": _file_summary(robots_txt),
+            "security_txt": _file_summary(security_txt, kind="security_txt"),
+            "robots_txt": _file_summary(robots_txt, kind="robots_txt"),
         },
     }
