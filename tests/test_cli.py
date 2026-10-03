@@ -82,17 +82,79 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(captured_kwargs.get("timeout"), 12.5)
 
-    def test_handles_output_file_error(self):
+    def test_summary_mode_prints_formatted_card(self):
+        fake_report = {
+            "target": "example.com",
+            "schema_version": 1,
+            "generated_at": "2026-10-03T00:00:00Z",
+            "dns": {"addresses": ["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946"]},
+            "web": {
+                "status": 200,
+                "url": "https://example.com/",
+                "title": "Example Domain",
+                "headers": {
+                    "present": ["strict-transport-security"],
+                    "missing": ["content-security-policy"],
+                    "server": "nginx",
+                    "cookie_security": {
+                        "has_secure": True,
+                        "has_httponly": True,
+                        "has_samesite": False,
+                    },
+                },
+            },
+            "tls": {
+                "subject": {"commonName": "example.com"},
+                "issuer": {"commonName": "DigiCert"},
+                "protocol": "TLSv1.3",
+                "cipher": {"name": "TLS_AES_256_GCM_SHA384", "bits": 256},
+                "expires": "2027-01-01T00:00:00Z",
+                "days_remaining": 100,
+                "is_expired": false if False else False,
+            },
+            "files": {
+                "security_txt": {"found": True, "contacts": ["mailto:sec@example.com"]},
+                "robots_txt": {"found": False, "status": 404},
+            },
+        }
+
         output = io.StringIO()
         error = io.StringIO()
         exit_code = main(
-            ["example.com", "-o", "/non_existent_dir_12345/report.json"],
+            ["example.com", "--summary"],
             stdout=output,
             stderr=error,
-            collector=lambda _target, **_kwargs: {"target": "example.com"},
+            collector=lambda _target, **_kwargs: fake_report,
         )
-        self.assertEqual(exit_code, 2)
-        self.assertIn("failed to write output file", error.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("OSINT REPORT: example.com", output.getvalue())
+        self.assertIn("IPv4:       93.184.216.34", output.getvalue())
+        self.assertIn("TLSv1.3", output.getvalue())
+        self.assertIn("mailto:sec@example.com", output.getvalue())
+        self.assertEqual(error.getvalue(), "")
+
+    def test_summary_mode_with_output_file_both_saves_and_prints(self):
+        import tempfile
+        import pathlib
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_path = pathlib.Path(temp_dir) / "out.json"
+            fake_report = {"target": "example.com", "schema_version": 1}
+            output = io.StringIO()
+            error = io.StringIO()
+
+            exit_code = main(
+                ["example.com", "-s", "-o", str(file_path)],
+                stdout=output,
+                stderr=error,
+                collector=lambda _target, **_kwargs: fake_report,
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(file_path.exists())
+            self.assertEqual(json.loads(file_path.read_text(encoding="utf-8")), fake_report)
+            self.assertIn("OSINT REPORT: example.com", output.getvalue())
 
 
 if __name__ == "__main__":

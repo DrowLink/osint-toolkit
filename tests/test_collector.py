@@ -362,6 +362,39 @@ class CollectorTests(unittest.TestCase):
         self.assertFalse(res["is_expired"])
         self.assertGreater(res["days_remaining"], 365)
 
+    def test_large_response_is_truncated_preserving_headers_and_status(self):
+        from unittest.mock import MagicMock
+
+        # Create a body larger than _MAX_BODY (262,144 bytes)
+        large_body = b"A" * (collector._MAX_BODY + 500)
+
+        mock_socket = MagicMock()
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.getheaders.return_value = [
+            ("Strict-Transport-Security", "max-age=31536000"),
+            ("Server", "test-server"),
+            ("Content-Type", "text/plain"),
+        ]
+        mock_response.read.return_value = large_body
+
+        with (
+            patch("osint_toolkit.collector.socket.create_connection", return_value=mock_socket),
+            patch("osint_toolkit.collector._DeadlineSocket", return_value=mock_socket),
+            patch("osint_toolkit.collector.http.client.HTTPResponse", return_value=mock_response),
+        ):
+            result = collector._connect_and_request(
+                "http://example.com/",
+                "example.com",
+                ["93.184.216.34"],
+                deadline=collector.time.monotonic() + 10.0,
+            )
+
+        self.assertEqual(result["status"], 200)
+        self.assertEqual(result["headers"]["Server"], "test-server")
+        self.assertTrue(result["truncated"])
+        self.assertEqual(len(result["text"]), collector._MAX_BODY)
+
 
 if __name__ == "__main__":
     unittest.main()

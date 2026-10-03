@@ -17,7 +17,7 @@ It does **not** scan ports, brute-force paths, enumerate accounts, bypass access
 - Pins outbound HTTP/TLS connections to prevalidated public IPv4 addresses only
 - Verifies TLS certificates and hostnames
 - Transparently supports gzip and deflate decompression using only the standard library
-- Limits each response to 256 KiB and each logical HTTP fetch to three redirects under one monotonic eight-second deadline that includes DNS resolution, connection, TLS, writes, and reads
+- Limits each response body to 256 KiB; responses exceeding this threshold are safely truncated (`"truncated": true`) while preserving HTTP status, headers, and metadata
 - Bounds the initial DNS metadata lookup with its own monotonic eight-second deadline; timed-out resolver work runs only in a daemon thread and cannot keep the CLI alive
 - Makes three logical HTTP fetches, each with at most four URL hops including the initial URL, plus one TLS certificate probe
 - Tries at most eight validated public IPv4 addresses per URL hop/probe: at most 96 HTTP connection attempts and eight TLS connection attempts per report (and zero when DNS has no eligible IPv4 address)
@@ -39,10 +39,22 @@ Python 3.11 or newer.
 python3 -m osint_toolkit example.com
 ```
 
+Print a human-readable terminal summary:
+
+```bash
+python3 -m osint_toolkit example.com -s
+```
+
 Save the JSON report directly to a file:
 
 ```bash
 python3 -m osint_toolkit example.com -o example.com.json
+```
+
+Display summary on terminal while saving full JSON to a file:
+
+```bash
+python3 -m osint_toolkit example.com -s -o example.com.json
 ```
 
 Or customize the deadline timeout (e.g. 5 seconds):
@@ -57,7 +69,7 @@ python3 -m osint_toolkit example.com -t 5.0
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install .
-osint-toolkit example.com -o report.json
+osint-toolkit example.com -s -o report.json
 ```
 
 ## Example output shape
