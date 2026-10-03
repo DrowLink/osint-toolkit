@@ -150,7 +150,8 @@ def _connect_and_request(
             if len(body) > _MAX_BODY:
                 raise ValueError("response exceeded the 256 KiB safety limit")
             headers = {key: value for key, value in response.getheaders()}
-            encoding = headers.get("Content-Encoding", "").lower().strip()
+            lower_headers = {key.lower(): value for key, value in headers.items()}
+            encoding = lower_headers.get("content-encoding", "").lower().strip()
             if encoding == "gzip":
                 try:
                     body = gzip.decompress(body)
@@ -164,7 +165,7 @@ def _connect_and_request(
                         body = zlib.decompress(body, -zlib.MAX_WBITS)
                     except Exception:
                         pass
-            text = _decode_body(body, headers.get("Content-Type", ""))
+            text = _decode_body(body, lower_headers.get("content-type", ""))
             title_match = _TITLE_RE.search(text)
             title = (
                 re.sub(r"\s+", " ", title_match.group(1)).strip()
