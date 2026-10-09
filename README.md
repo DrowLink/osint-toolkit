@@ -5,6 +5,12 @@ A small, dependency-free Python CLI that collects **bounded, passive metadata** 
 ## What it collects
 
 - Public IPv4 and IPv6 DNS addresses (IPv6 is metadata-only)
+- Authoritative nameservers (NS) and SOA primary nameserver / administrator contact
+- Email infrastructure: MX servers with mail provider identification (Google Workspace, Microsoft 365, Proton, etc.)
+- Email spoofing protection: SPF record mechanism analysis and DMARC enforcement policy evaluation
+- Domain registration (RDAP / WHOIS): Registrar name, registration date, expiration date, and EPP domain statuses
+- IP infrastructure & Geolocation: ASN, network organization, country, and city
+- Passive subdomain discovery from Certificate Transparency (crt.sh) logs
 - Homepage status, title, meta tags (description, generator), final URL, server header, cookie security flags, and extended security-header coverage (including COOP, COEP, CORP)
 - Verified TLS certificate subject, issuer, expiry, days remaining, protocol version, cipher suite, DNS names, and SHA-256 fingerprint
 - Presence, key directives (contacts, sitemaps), and a bounded preview of `/.well-known/security.txt` and `/robots.txt`

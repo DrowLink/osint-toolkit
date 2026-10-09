@@ -8,6 +8,12 @@ from osint_toolkit.core import (
     analyze_security_headers,
     extract_meta_tags,
     normalize_domain,
+    parse_dmarc_record,
+    parse_ip_info,
+    parse_mx_records,
+    parse_rdap_response,
+    parse_soa_record,
+    parse_spf_record,
     resolve_public_addresses,
 )
 
@@ -213,5 +219,119 @@ class MetaTagTests(unittest.TestCase):
         self.assertEqual(extract_meta_tags(html), {"description": "My Description"})
 
 
+class DnsParsingTests(unittest.TestCase):
+    def test_parses_and_identifies_mail_providers(self):
+        records = [
+            "20 alt1.aspmx.l.google.com.",
+            "10 aspmx.l.google.com.",
+            "0 example-com.mail.protection.outlook.com.",
+            "10 mail.protonmail.ch.",
+            "50 mx.customhost.org.",
+        ]
+        parsed = parse_mx_records(records)
+        self.assertEqual(len(parsed), 5)
+        # Should be sorted by preference
+        self.assertEqual(parsed[0]["preference"], 0)
+        self.assertEqual(parsed[0]["provider"], "Microsoft 365")
+        self.assertEqual(parsed[1]["preference"], 10)
+        self.assertEqual(parsed[1]["provider"], "Google Workspace")
+        self.assertEqual(parsed[2]["preference"], 10)
+        self.assertEqual(parsed[2]["provider"], "Proton Mail")
+        self.assertEqual(parsed[4]["preference"], 50)
+        self.assertEqual(parsed[4]["provider"], "Custom / Self-hosted")
+
+    def test_parses_spf_records(self):
+        txt_records = [
+            '"v=spf1 include:_spf.google.com ~all"',
+            '"google-site-verification=abc"',
+        ]
+        spf = parse_spf_record(txt_records)
+        self.assertIsNotNone(spf)
+        self.assertEqual(spf["policy"], "~all")
+        self.assertEqual(spf["strength"], "SoftFail (Recommended)")
+        self.assertEqual(spf["includes"], ["_spf.google.com"])
+
+        strict_spf = parse_spf_record(['v=spf1 ip4:192.0.2.1 -all'])
+        self.assertEqual(strict_spf["policy"], "-all")
+        self.assertEqual(strict_spf["strength"], "Fail (Strict)")
+
+        insecure_spf = parse_spf_record(['v=spf1 +all'])
+        self.assertEqual(insecure_spf["strength"], "Pass (Insecure)")
+
+        no_spf = parse_spf_record(['some text record'])
+        self.assertIsNone(no_spf)
+
+    def test_parses_dmarc_records(self):
+        record = '"v=DMARC1; p=reject; rua=mailto:dmarc@example.com; pct=100"'
+        dmarc = parse_dmarc_record(record)
+        self.assertIsNotNone(dmarc)
+        self.assertEqual(dmarc["policy"], "reject")
+        self.assertIn("Reject", dmarc["enforcement"])
+        self.assertEqual(dmarc["rua"], "mailto:dmarc@example.com")
+        self.assertEqual(dmarc["percentage"], "100")
+
+        quar_record = 'v=DMARC1; p=quarantine'
+        quar = parse_dmarc_record(quar_record)
+        self.assertEqual(quar["policy"], "quarantine")
+        self.assertIn("Quarantine", quar["enforcement"])
+
+        none_record = 'v=DMARC1; p=none'
+        none_dmarc = parse_dmarc_record(none_record)
+        self.assertEqual(none_dmarc["policy"], "none")
+        self.assertIn("None", none_dmarc["enforcement"])
+
+        self.assertIsNone(parse_dmarc_record(None))
+        self.assertIsNone(parse_dmarc_record("v=spf1 ..."))
+
+    def test_parses_soa_records(self):
+        soa_raw = "ns1.google.com. dns-admin.google.com. 996430997 900 900 1800 60"
+        soa = parse_soa_record(soa_raw)
+        self.assertIsNotNone(soa)
+        self.assertEqual(soa["primary_ns"], "ns1.google.com")
+        self.assertEqual(soa["admin_email"], "dns-admin@google.com")
+        self.assertEqual(soa["serial"], "996430997")
+        self.assertIsNone(parse_soa_record(None))
+
+
+class RdapAndNetworkParsingTests(unittest.TestCase):
+    def test_parses_rdap_response(self):
+        data = {
+            "entities": [
+                {
+                    "roles": ["registrar"],
+                    "vcardArray": ["vcard", [["fn", {}, "text", "MarkMonitor Inc."]]],
+                }
+            ],
+            "events": [
+                {"eventAction": "registration", "eventDate": "1997-09-15T04:00:00Z"},
+                {"eventAction": "expiration", "eventDate": "2028-09-14T04:00:00Z"},
+                {"eventAction": "last changed", "eventDate": "2019-09-09T15:39:04Z"},
+            ],
+            "status": ["clientDeleteProhibited", "clientTransferProhibited"],
+        }
+        rdap = parse_rdap_response(data)
+        self.assertEqual(rdap["registrar"], "MarkMonitor Inc.")
+        self.assertEqual(rdap["created"], "1997-09-15T04:00:00Z")
+        self.assertEqual(rdap["expires"], "2028-09-14T04:00:00Z")
+        self.assertIn("clientDeleteProhibited", rdap["status"])
+
+    def test_parses_ip_info(self):
+        data = {
+            "ip": "142.251.210.78",
+            "asn": "AS15169",
+            "org": "Google LLC",
+            "country_name": "United States",
+            "country_code": "US",
+            "city": "Chicago",
+            "region": "Illinois",
+        }
+        info = parse_ip_info(data)
+        self.assertEqual(info["asn"], "AS15169")
+        self.assertEqual(info["org"], "Google LLC")
+        self.assertEqual(info["country"], "United States")
+        self.assertEqual(info["city"], "Chicago")
+
+
 if __name__ == "__main__":
     unittest.main()
+

@@ -208,3 +208,192 @@ def analyze_security_headers(headers: Mapping[str, str]) -> dict[str, Any]:
             "has_samesite": "samesite" in cookie_lower,
         }
     return result
+
+
+_KNOWN_MAIL_PROVIDERS = (
+    (("google.com", "googlemail.com", "smtp.google.com", "aspmx.l.google.com"), "Google Workspace"),
+    (("outlook.com", "protection.outlook.com", "office365.com"), "Microsoft 365"),
+    (("protonmail.ch", "proton.me"), "Proton Mail"),
+    (("zoho.com", "zoho.eu"), "Zoho Mail"),
+    (("messagingengine.com", "fastmail.com"), "Fastmail"),
+    (("icloud.com", "mail.me.com", "apple.com"), "Apple iCloud Mail"),
+    (("mimecast.com",), "Mimecast"),
+    (("pphosted.com", "proofpoint.com"), "Proofpoint"),
+    (("barracudanetworks.com",), "Barracuda"),
+    (("ovh.net",), "OVHcloud"),
+    (("amazonses.com",), "Amazon SES"),
+    (("yandex.net", "yandex.ru"), "Yandex 360"),
+)
+
+
+def identify_mail_provider(exchange: str) -> str:
+    """Identify well-known email providers from an MX hostname."""
+    lowered = exchange.lower().rstrip(".")
+    for patterns, provider in _KNOWN_MAIL_PROVIDERS:
+        if any(pattern in lowered for pattern in patterns):
+            return provider
+    return "Custom / Self-hosted"
+
+
+def parse_mx_records(records: list[str]) -> list[dict[str, Any]]:
+    """Parse, sort by preference, and identify provider for MX records."""
+    parsed: list[dict[str, Any]] = []
+    for item in records:
+        cleaned = item.strip().strip('"')
+        parts = cleaned.split()
+        if len(parts) >= 2:
+            try:
+                preference = int(parts[0])
+                exchange = parts[1].rstrip(".").lower()
+                parsed.append({
+                    "preference": preference,
+                    "exchange": exchange,
+                    "provider": identify_mail_provider(exchange),
+                })
+            except ValueError:
+                continue
+        elif len(parts) == 1:
+            exchange = parts[0].rstrip(".").lower()
+            parsed.append({
+                "preference": 10,
+                "exchange": exchange,
+                "provider": identify_mail_provider(exchange),
+            })
+    return sorted(parsed, key=lambda item: (item["preference"], item["exchange"]))
+
+
+def parse_spf_record(records: list[str]) -> dict[str, Any] | None:
+    """Extract and analyze SPF record from TXT records."""
+    for record in records:
+        cleaned = record.strip().strip('"')
+        if cleaned.lower().startswith("v=spf1"):
+            terms = cleaned.split()
+            policy = None
+            strength = "Unspecified"
+            includes: list[str] = []
+            for term in terms[1:]:
+                term_lower = term.lower()
+                if term_lower in {"-all", "~all", "?all", "+all"}:
+                    policy = term_lower
+                    if term_lower == "-all":
+                        strength = "Fail (Strict)"
+                    elif term_lower == "~all":
+                        strength = "SoftFail (Recommended)"
+                    elif term_lower == "?all":
+                        strength = "Neutral"
+                    elif term_lower == "+all":
+                        strength = "Pass (Insecure)"
+                elif term_lower.startswith("include:"):
+                    includes.append(term[len("include:"):])
+            return {
+                "raw": cleaned,
+                "policy": policy,
+                "strength": strength,
+                "includes": includes,
+            }
+    return None
+
+
+def parse_dmarc_record(record: str | None) -> dict[str, Any] | None:
+    """Extract and analyze DMARC record."""
+    if not record:
+        return None
+    cleaned = record.strip().strip('"')
+    if not cleaned.lower().startswith("v=dmarc1"):
+        return None
+    tags: dict[str, str] = {}
+    for part in cleaned.split(";"):
+        part = part.strip()
+        if "=" in part:
+            k, v = part.split("=", 1)
+            tags[k.strip().lower()] = v.strip()
+    policy = tags.get("p", "none").lower()
+    if policy == "reject":
+        enforcement = "Enforced (Reject) - High Protection"
+    elif policy == "quarantine":
+        enforcement = "Enforced (Quarantine) - Medium Protection"
+    elif policy == "none":
+        enforcement = "Monitoring Only (None) - No Enforcement"
+    else:
+        enforcement = f"Custom ({policy})"
+    return {
+        "raw": cleaned,
+        "policy": policy,
+        "enforcement": enforcement,
+        "rua": tags.get("rua"),
+        "subdomain_policy": tags.get("sp"),
+        "percentage": tags.get("pct"),
+    }
+
+
+def parse_soa_record(record: str | None) -> dict[str, Any] | None:
+    """Extract primary nameserver and admin email from an SOA record."""
+    if not record:
+        return None
+    cleaned = record.strip().strip('"')
+    parts = cleaned.split()
+    if not parts:
+        return None
+    primary_ns = parts[0].rstrip(".")
+    admin_email = None
+    if len(parts) > 1:
+        mailbox = parts[1].rstrip(".")
+        if "." in mailbox:
+            user, domain = mailbox.split(".", 1)
+            admin_email = f"{user}@{domain}"
+        else:
+            admin_email = mailbox
+    serial = parts[2] if len(parts) > 2 else None
+    return {
+        "primary_ns": primary_ns,
+        "admin_email": admin_email,
+        "serial": serial,
+        "raw": cleaned,
+    }
+
+
+def parse_rdap_response(data: dict[str, Any]) -> dict[str, Any]:
+    """Extract registrar, key event dates, and status from RDAP response."""
+    registrar = None
+    entities = data.get("entities", [])
+    for entity in entities:
+        roles = entity.get("roles", [])
+        if "registrar" in roles:
+            vcard = entity.get("vcardArray", [])
+            if len(vcard) > 1 and isinstance(vcard[1], list):
+                for item in vcard[1]:
+                    if isinstance(item, list) and len(item) > 3 and item[0] == "fn":
+                        registrar = item[3]
+                        break
+            if not registrar:
+                registrar = entity.get("handle")
+            break
+
+    dates: dict[str, str] = {}
+    for event in data.get("events", []):
+        action = event.get("eventAction")
+        date_str = event.get("eventDate")
+        if action and date_str:
+            dates[action] = date_str
+
+    return {
+        "registrar": registrar,
+        "created": dates.get("registration"),
+        "expires": dates.get("expiration"),
+        "updated": dates.get("last changed"),
+        "status": data.get("status", []),
+    }
+
+
+def parse_ip_info(data: dict[str, Any]) -> dict[str, Any]:
+    """Extract ASN, org, and location info from IP geolocation response."""
+    return {
+        "ip": data.get("ip"),
+        "asn": data.get("asn"),
+        "org": data.get("org"),
+        "country": data.get("country_name") or data.get("country"),
+        "country_code": data.get("country_code"),
+        "city": data.get("city"),
+        "region": data.get("region"),
+    }
+

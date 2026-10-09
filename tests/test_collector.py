@@ -44,10 +44,26 @@ class CollectorTests(unittest.TestCase):
             certificate_probe=lambda _domain, _addresses: {
                 "expires": "2030-01-01T00:00:00Z"
             },
+            extended_dns_collector=lambda _domain: {
+                "mx": [{"preference": 10, "exchange": "mail.example.com", "provider": "Custom / Self-hosted"}],
+                "spf": {"raw": "v=spf1 -all", "policy": "-all", "strength": "Fail (Strict)"},
+                "dmarc": {"raw": "v=DMARC1; p=reject", "policy": "reject", "enforcement": "Enforced (Reject) - High Protection"},
+                "ns": ["ns1.example.com"],
+                "soa": {"primary_ns": "ns1.example.com", "admin_email": "admin@example.com"},
+            },
+            rdap_fetcher=lambda _domain: {"registrar": "Example Registrar", "created": "1995-01-01"},
+            ip_info_fetcher=lambda _ip: {"asn": "AS1234", "org": "Example Corp", "country": "US"},
+            subdomain_fetcher=lambda _domain: {"total_found": 1, "subdomains": ["api.example.com"]},
         )
 
         self.assertEqual(report["target"], "example.com")
         self.assertEqual(report["dns"]["addresses"], ["93.184.216.34"])
+        self.assertEqual(report["dns"]["mx"][0]["exchange"], "mail.example.com")
+        self.assertEqual(report["dns"]["spf"]["policy"], "-all")
+        self.assertEqual(report["dns"]["dmarc"]["policy"], "reject")
+        self.assertEqual(report["whois"]["registrar"], "Example Registrar")
+        self.assertEqual(report["network"]["asn"], "AS1234")
+        self.assertEqual(report["subdomains"]["total_found"], 1)
         self.assertEqual(report["web"]["title"], "Example Domain")
         self.assertTrue(report["files"]["security_txt"]["found"])
         self.assertFalse(report["files"]["robots_txt"]["found"])
@@ -395,6 +411,48 @@ class CollectorTests(unittest.TestCase):
         self.assertTrue(result["truncated"])
         self.assertEqual(len(result["text"]), collector._MAX_BODY)
 
+    def test_collect_dns_records_aggregates_records(self):
+        def fake_doh(name, rtype):
+            if rtype == "MX":
+                return ["10 mail.example.com."]
+            if rtype == "TXT" and name == "example.com":
+                return ['"v=spf1 ~all"']
+            if rtype == "TXT" and name == "_dmarc.example.com":
+                return ['"v=DMARC1; p=reject"']
+            if rtype == "NS":
+                return ["ns1.example.com.", "ns2.example.com."]
+            if rtype == "SOA":
+                return ["ns1.example.com. admin.example.com. 1 2 3 4 5"]
+            return []
+
+        res = collector.collect_dns_records("example.com", doh_query=fake_doh)
+        self.assertEqual(len(res["mx"]), 1)
+        self.assertEqual(res["mx"][0]["exchange"], "mail.example.com")
+        self.assertEqual(res["spf"]["policy"], "~all")
+        self.assertEqual(res["dmarc"]["policy"], "reject")
+        self.assertEqual(res["ns"], ["ns1.example.com", "ns2.example.com"])
+        self.assertEqual(res["soa"]["primary_ns"], "ns1.example.com")
+
+    def test_query_subdomains_parses_crtsh_response(self):
+        fake_data = [
+            {"name_value": "*.api.example.com\nweb.example.com"},
+            {"name_value": "admin.example.com\notherdomain.com"},
+        ]
+        from unittest.mock import MagicMock
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = collector.json.dumps(fake_data).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            res = collector.query_subdomains("example.com")
+
+        self.assertEqual(res["total_found"], 3)
+        self.assertIn("admin.example.com", res["subdomains"])
+        self.assertIn("api.example.com", res["subdomains"])
+        self.assertIn("web.example.com", res["subdomains"])
+        self.assertNotIn("otherdomain.com", res["subdomains"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -7,10 +7,12 @@ import hashlib
 import http.client
 import io
 import ipaddress
+import json
 import re
 import socket
 import ssl
 import time
+import urllib.request
 import zlib
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -22,6 +24,12 @@ from .core import (
     extract_meta_tags,
     is_public_unicast_address,
     normalize_domain,
+    parse_dmarc_record,
+    parse_ip_info,
+    parse_mx_records,
+    parse_rdap_response,
+    parse_soa_record,
+    parse_spf_record,
     resolve_public_addresses,
 )
 
@@ -345,6 +353,120 @@ def _file_summary(result: dict[str, Any], kind: str = "generic") -> dict[str, An
     return summary
 
 
+def query_doh_records(name: str, record_type: str, timeout: float = 4.0) -> list[str]:
+    """Query DNS records via standard DNS-over-HTTPS (Cloudflare with Google fallback)."""
+    endpoints = [
+        ("https://cloudflare-dns.com/dns-query", {"Accept": "application/dns-json", "User-Agent": _USER_AGENT}),
+        ("https://dns.google/resolve", {"Accept": "application/json", "User-Agent": _USER_AGENT}),
+    ]
+    for base_url, headers in endpoints:
+        try:
+            url = f"{base_url}?name={name}&type={record_type}"
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+                answers = data.get("Answer", [])
+                results: list[str] = []
+                for ans in answers:
+                    val = str(ans.get("data", "")).strip()
+                    if val:
+                        results.append(val)
+                return results
+        except Exception:
+            continue
+    return []
+
+
+def collect_dns_records(
+    domain: str,
+    *,
+    doh_query: Callable[[str, str], list[str]] = query_doh_records,
+) -> dict[str, Any]:
+    """Collect extended DNS records: MX, TXT (SPF), DMARC, NS, SOA."""
+    mx_raw = doh_query(domain, "MX")
+    txt_raw = doh_query(domain, "TXT")
+    dmarc_raw = doh_query(f"_dmarc.{domain}", "TXT")
+    ns_raw = doh_query(domain, "NS")
+    soa_raw = doh_query(domain, "SOA")
+
+    clean_txt = [r.strip().strip('"') for r in txt_raw]
+    clean_ns = sorted({r.rstrip(".").lower() for r in ns_raw if r.strip()})
+
+    dmarc_text = None
+    for r in dmarc_raw:
+        cleaned = r.strip().strip('"')
+        if cleaned.lower().startswith("v=dmarc1"):
+            dmarc_text = cleaned
+            break
+
+    return {
+        "mx": parse_mx_records(mx_raw),
+        "txt": clean_txt,
+        "spf": parse_spf_record(txt_raw),
+        "dmarc": parse_dmarc_record(dmarc_text),
+        "ns": clean_ns,
+        "soa": parse_soa_record(soa_raw[0] if soa_raw else None),
+    }
+
+
+def query_rdap(domain: str, timeout: float = 4.0) -> dict[str, Any]:
+    """Fetch WHOIS/RDAP registration data via open RDAP service."""
+    try:
+        url = f"https://rdap.org/domain/{domain}"
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": _USER_AGENT,
+                "Accept": "application/rdap+json,application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            return parse_rdap_response(data)
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def query_ip_info(ip: str, timeout: float = 4.0) -> dict[str, Any]:
+    """Fetch ASN, organization and geographic metadata for a public IP."""
+    try:
+        url = f"https://ipapi.co/{ip}/json/"
+        req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            if data.get("error"):
+                return {"error": data.get("reason", "IP lookup failed")}
+            return parse_ip_info(data)
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def query_subdomains(
+    domain: str, timeout: float = 5.0, max_subdomains: int = 40
+) -> dict[str, Any]:
+    """Passively discover subdomains from Certificate Transparency logs (crt.sh)."""
+    try:
+        url = f"https://crt.sh/?q=%.{domain}&output=json"
+        req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            found = set()
+            dot_domain = f".{domain.lower()}"
+            for item in data:
+                name_val = item.get("name_value", "")
+                for sub in name_val.splitlines():
+                    sub = sub.strip().lower().lstrip("*.")
+                    if (sub.endswith(dot_domain) or sub == domain.lower()) and sub != domain.lower():
+                        found.add(sub)
+            sorted_subs = sorted(found)
+            return {
+                "total_found": len(sorted_subs),
+                "subdomains": sorted_subs[:max_subdomains],
+            }
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
 def collect_report(
     target: str,
     *,
@@ -353,6 +475,10 @@ def collect_report(
     certificate_probe: Callable[
         [str, list[str]], dict[str, Any]
     ] = probe_tls_certificate,
+    extended_dns_collector: Callable[..., dict[str, Any]] | None = collect_dns_records,
+    rdap_fetcher: Callable[[str], dict[str, Any]] | None = query_rdap,
+    ip_info_fetcher: Callable[[str], dict[str, Any]] | None = query_ip_info,
+    subdomain_fetcher: Callable[[str], dict[str, Any]] | None = query_subdomains,
     timeout: float = 8.0,
 ) -> dict[str, Any]:
     """Collect a deterministic report from bounded public sources."""
@@ -366,6 +492,10 @@ def collect_report(
         security_txt = probe_error
         robots_txt = probe_error
         tls = probe_error
+        dns_extended = probe_error
+        whois = probe_error
+        network = probe_error
+        subdomains = probe_error
     else:
         home = _safe_call(lambda: fetcher(f"https://{domain}/"))
         security_txt = _safe_call(
@@ -373,6 +503,22 @@ def collect_report(
         )
         robots_txt = _safe_call(lambda: fetcher(f"https://{domain}/robots.txt"))
         tls = _safe_call(lambda: certificate_probe(domain, ipv4_addresses))
+        dns_extended = (
+            _safe_call(lambda: extended_dns_collector(domain))
+            if extended_dns_collector is not None
+            else {}
+        )
+        whois = _safe_call(lambda: rdap_fetcher(domain)) if rdap_fetcher is not None else {}
+        network = (
+            _safe_call(lambda: ip_info_fetcher(ipv4_addresses[0]))
+            if ip_info_fetcher is not None and ipv4_addresses
+            else {}
+        )
+        subdomains = (
+            _safe_call(lambda: subdomain_fetcher(domain))
+            if subdomain_fetcher is not None
+            else {}
+        )
 
     if "error" in home:
         web: dict[str, Any] = home
@@ -386,11 +532,21 @@ def collect_report(
         }
         if home.get("truncated"):
             web["truncated"] = True
+
+    dns_section: dict[str, Any] = {"addresses": addresses}
+    if isinstance(dns_extended, dict) and "error" not in dns_extended:
+        dns_section.update(dns_extended)
+    elif isinstance(dns_extended, dict) and "error" in dns_extended:
+        dns_section["extended_error"] = dns_extended["error"]
+
     return {
         "schema_version": 1,
         "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "target": domain,
-        "dns": {"addresses": addresses},
+        "dns": dns_section,
+        "whois": whois,
+        "network": network,
+        "subdomains": subdomains,
         "web": web,
         "tls": tls,
         "files": {
