@@ -82,3 +82,18 @@ The toolkit provides dedicated methods and separate standalone commands for exte
    - Requires `CENSYS_API_ID` and `CENSYS_API_SECRET` credentials. Unauthenticated calls return guided setup instructions and web search portal link.
    - Reports open services, transport protocols, autonomous system, and geolocation.
 
+---
+
+## 5. Local AI Integration Specification (Ollama)
+
+1. **Zero External Dependencies / HTTP Native**:
+   - Connects directly to local or network Ollama REST API (`http://localhost:11434/api/generate` and `/api/tags`) using Python's standard library `urllib.request`.
+   - No external AI SDKs (`ollama`, `openai`, `langchain`) are permitted.
+
+2. **Automated Intelligence Briefing**:
+   - Flag: `--ai` / `--ollama` (with optional `--ai-model` and `--ai-endpoint`).
+   - Method: `generate_ai_briefing(report, model=None, endpoint=None, timeout=40.0)`.
+   - Functionality: Takes collected metadata from username hunting, domain recon, or threat scans and generates an executive cyber posture / risk summary using a local LLM (e.g., `llama3`, `mistral`, `phi3`, `qwen2.5`).
+   - Resiliency: If Ollama is offline or unreachable, the toolkit reports a friendly, non-fatal message without failing the CLI process.
+
+

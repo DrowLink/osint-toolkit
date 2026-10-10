@@ -8,6 +8,7 @@ import sys
 from collections.abc import Callable, Sequence
 from typing import Any, TextIO
 
+from .ai import format_ai_briefing_card, generate_ai_briefing
 from .collector import collect_report
 from .core import DomainValidationError
 from .services import (
@@ -71,7 +72,26 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Display human-readable summary card (default in terminal)",
     )
+    parser.add_argument(
+        "--ai",
+        "--ollama",
+        action="store_true",
+        help="Synthesize report with local AI (Ollama) intelligence briefing",
+    )
+    parser.add_argument(
+        "--ai-model",
+        type=str,
+        default=None,
+        help="Local LLM model to use (default: llama3 or first installed model)",
+    )
+    parser.add_argument(
+        "--ai-endpoint",
+        type=str,
+        default=None,
+        help="Ollama API endpoint (default: http://localhost:11434 or OLLAMA_HOST)",
+    )
     return parser
+
 
 
 def format_summary(report: dict[str, Any], *, use_color: bool = True) -> str:
@@ -577,6 +597,9 @@ def _run_service_cli(
     parser.add_argument("-o", "--output", type=str, default=None, help="File path to save JSON report")
     parser.add_argument("-j", "--json", action="store_true", help="Output raw JSON instead of formatted card")
     parser.add_argument("-s", "--summary", action="store_true", help="Display formatted summary card")
+    parser.add_argument("--ai", "--ollama", action="store_true", help="Synthesize report with local AI (Ollama)")
+    parser.add_argument("--ai-model", type=str, default=None, help="Local LLM model to use")
+    parser.add_argument("--ai-endpoint", type=str, default=None, help="Ollama API endpoint")
 
     if extra_parser_args:
         extra_parser_args(parser)
@@ -600,6 +623,16 @@ def _run_service_cli(
         stderr.write(f"error: {exc}\n")
         return 2
 
+    ai_result = None
+    if getattr(args, "ai", False):
+        ai_result = generate_ai_briefing(
+            report,
+            model=getattr(args, "ai_model", None),
+            endpoint=getattr(args, "ai_endpoint", None),
+        )
+        if args.output or args.json:
+            report["ai_briefing"] = ai_result
+
     if args.output:
         try:
             with open(args.output, "w", encoding="utf-8") as file:
@@ -617,6 +650,10 @@ def _run_service_cli(
         use_color = is_tty and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
         stdout.write(formatter(report, use_color=use_color))
         stdout.write("\n")
+        if ai_result:
+            stdout.write("\n")
+            stdout.write(format_ai_briefing_card(ai_result, use_color=use_color))
+            stdout.write("\n")
     elif not args.output or args.json:
         json.dump(report, stdout, indent=2, sort_keys=True)
         stdout.write("\n")
@@ -723,6 +760,16 @@ def main(
         stderr.write(f"error: {exc}\n")
         return 2
 
+    ai_result = None
+    if getattr(args, "ai", False):
+        ai_result = generate_ai_briefing(
+            report,
+            model=getattr(args, "ai_model", None),
+            endpoint=getattr(args, "ai_endpoint", None),
+        )
+        if args.output or args.json:
+            report["ai_briefing"] = ai_result
+
     if args.output:
         try:
             with open(args.output, "w", encoding="utf-8") as file:
@@ -746,6 +793,10 @@ def main(
         else:
             stdout.write(format_summary(report, use_color=use_color))
         stdout.write("\n")
+        if ai_result:
+            stdout.write("\n")
+            stdout.write(format_ai_briefing_card(ai_result, use_color=use_color))
+            stdout.write("\n")
     elif not args.output or args.json:
         json.dump(report, stdout, indent=2, sort_keys=True)
         stdout.write("\n")
