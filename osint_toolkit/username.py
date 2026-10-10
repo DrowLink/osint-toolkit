@@ -242,7 +242,7 @@ def check_site(
     if check_type == "status_code":
         exists = status_code == 200
     elif check_type == "message":
-        if status_code in {200, 404}:
+        if status_code == 200:
             absent = site.get("absent_pattern")
             present = site.get("present_pattern")
             if absent:
@@ -255,6 +255,8 @@ def check_site(
                     exists = any(p.lower() in body.lower() for p in present)
                 else:
                     exists = present.lower() in body.lower()
+        else:
+            exists = False
 
     return {
         "name": name,
