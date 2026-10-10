@@ -251,16 +251,16 @@ cd osint-toolkit
           </div>
         </div>
 
-        <h3 id="platforms-directory">Platform Directory</h3>
-        <p>Filter platforms currently queried by the engine:</p>
+        <h3 id="platforms-directory">Platform Directory (56 Verified Sites)</h3>
+        <p>Filter platforms currently queried by the engine across 5 major categories:</p>
 
         <div class="filter-bar">
-          <button class="filter-btn active" data-category="all">All (23)</button>
-          <button class="filter-btn" data-category="Coding & Tech">Coding & Tech</button>
-          <button class="filter-btn" data-category="Social & Messaging">Social & Messaging</button>
-          <button class="filter-btn" data-category="Gaming & Chess">Gaming & Chess</button>
-          <button class="filter-btn" data-category="Design & Audio">Design & Audio</button>
-          <button class="filter-btn" data-category="Publishing">Publishing</button>
+          <button class="filter-btn active" data-category="all">All (56)</button>
+          <button class="filter-btn" data-category="Coding & Tech">Coding & Tech (17)</button>
+          <button class="filter-btn" data-category="Social & Messaging">Social & Messaging (13)</button>
+          <button class="filter-btn" data-category="Gaming & Entertainment">Gaming & Entertainment (9)</button>
+          <button class="filter-btn" data-category="Design & Audio">Design & Audio (10)</button>
+          <button class="filter-btn" data-category="Publishing & Knowledge">Publishing & Knowledge (7)</button>
         </div>
 
         <div class="table-wrapper">
@@ -274,31 +274,103 @@ cd osint-toolkit
               </tr>
             </thead>
             <tbody>
+              <!-- Coding & Tech (17) -->
               <tr data-category="Coding & Tech"><td>GitHub</td><td>Coding & Tech</td><td><code>github.com/{username}</code></td><td>Status Code</td></tr>
-              <tr data-category="Coding & Tech"><td>Docker Hub</td><td>Coding & Tech</td><td><code>hub.docker.com/u/{username}</code></td><td>API Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>GitLab</td><td>Coding & Tech</td><td><code>gitlab.com/{username}</code></td><td>Status Code</td></tr>
               <tr data-category="Coding & Tech"><td>Codeberg</td><td>Coding & Tech</td><td><code>codeberg.org/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>Bitbucket</td><td>Coding & Tech</td><td><code>bitbucket.org/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>Docker Hub</td><td>Coding & Tech</td><td><code>hub.docker.com/u/{username}</code></td><td>API Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>PyPI</td><td>Coding & Tech</td><td><code>pypi.org/user/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>npm</td><td>Coding & Tech</td><td><code>npmjs.com/~{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>Crates.io</td><td>Coding & Tech</td><td><code>crates.io/users/{username}</code></td><td>API Status Code</td></tr>
               <tr data-category="Coding & Tech"><td>Dev.to</td><td>Coding & Tech</td><td><code>dev.to/{username}</code></td><td>Status Code</td></tr>
-              <tr data-category="Coding & Tech"><td>HackerNews</td><td>Coding & Tech</td><td><code>news.ycombinator.com/user?id={username}</code></td><td>Content Absent</td></tr>
+              <tr data-category="Coding & Tech"><td>Hashnode</td><td>Coding & Tech</td><td><code>hashnode.com/@{username}</code></td><td>Status Code</td></tr>
               <tr data-category="Coding & Tech"><td>Keybase</td><td>Coding & Tech</td><td><code>keybase.io/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>HackerNews</td><td>Coding & Tech</td><td><code>news.ycombinator.com/user?id={username}</code></td><td>Content Absent</td></tr>
+              <tr data-category="Coding & Tech"><td>Kaggle</td><td>Coding & Tech</td><td><code>kaggle.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>LeetCode</td><td>Coding & Tech</td><td><code>leetcode.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>TryHackMe</td><td>Coding & Tech</td><td><code>tryhackme.com/p/{username}</code></td><td>Status Code</td></tr>
               <tr data-category="Coding & Tech"><td>Replit</td><td>Coding & Tech</td><td><code>replit.com/@{username}</code></td><td>Status Code</td></tr>
               <tr data-category="Coding & Tech"><td>Pastebin</td><td>Coding & Tech</td><td><code>pastebin.com/u/{username}</code></td><td>Status Code</td></tr>
+
+              <!-- Social & Messaging (13) -->
               <tr data-category="Social & Messaging"><td>Telegram</td><td>Social & Messaging</td><td><code>t.me/{username}</code></td><td>Content Present</td></tr>
-              <tr data-category="Social & Messaging"><td>Disqus</td><td>Social & Messaging</td><td><code>disqus.com/by/{username}/</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Reddit</td><td>Social & Messaging</td><td><code>reddit.com/user/{username}</code></td><td>API Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Mastodon</td><td>Social & Messaging</td><td><code>mastodon.social/@{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Bluesky</td><td>Social & Messaging</td><td><code>bsky.app/profile/{username}.bsky.social</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Disqus</td><td>Social & Messaging</td><td><code>disqus.com/by/{username}</code></td><td>Status Code</td></tr>
               <tr data-category="Social & Messaging"><td>Linktree</td><td>Social & Messaging</td><td><code>linktr.ee/{username}</code></td><td>Status Code</td></tr>
-              <tr data-category="Social & Messaging"><td>Gravatar</td><td>Social & Messaging</td><td><code>gravatar.com/{username}</code></td><td>Status Code</td></tr>
-              <tr data-category="Gaming & Chess"><td>Steam</td><td>Gaming & Chess</td><td><code>steamcommunity.com/id/{username}</code></td><td>Content Absent</td></tr>
-              <tr data-category="Gaming & Chess"><td>Chess.com</td><td>Gaming & Chess</td><td><code>chess.com/member/{username}</code></td><td>Status Code</td></tr>
-              <tr data-category="Gaming & Chess"><td>Lichess</td><td>Gaming & Chess</td><td><code>lichess.org/@/{username}</code></td><td>Status Code</td></tr>
-              <tr data-category="Gaming & Chess"><td>itch.io</td><td>Gaming & Chess</td><td><code>{username}.itch.io</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Gravatar</td><td>Social & Messaging</td><td><code>gravatar.com/{username}</code></td><td>API Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Pinterest</td><td>Social & Messaging</td><td><code>pinterest.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>BuyMeACoffee</td><td>Social & Messaging</td><td><code>buymeacoffee.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Ko-fi</td><td>Social & Messaging</td><td><code>ko-fi.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>ProductHunt</td><td>Social & Messaging</td><td><code>producthunt.com/@{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>About.me</td><td>Social & Messaging</td><td><code>about.me/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Quora</td><td>Social & Messaging</td><td><code>quora.com/profile/{username}</code></td><td>Status Code</td></tr>
+
+              <!-- Gaming & Entertainment (9) -->
+              <tr data-category="Gaming & Entertainment"><td>Steam</td><td>Gaming & Entertainment</td><td><code>steamcommunity.com/id/{username}</code></td><td>Content Absent</td></tr>
+              <tr data-category="Gaming & Entertainment"><td>Chess.com</td><td>Gaming & Entertainment</td><td><code>chess.com/member/{username}</code></td><td>API Status Code</td></tr>
+              <tr data-category="Gaming & Entertainment"><td>Lichess</td><td>Gaming & Entertainment</td><td><code>lichess.org/@/{username}</code></td><td>API Status Code</td></tr>
+              <tr data-category="Gaming & Entertainment"><td>itch.io</td><td>Gaming & Entertainment</td><td><code>{username}.itch.io</code></td><td>Status Code</td></tr>
+              <tr data-category="Gaming & Entertainment"><td>Roblox</td><td>Gaming & Entertainment</td><td><code>roblox.com/user.aspx?username={username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Gaming & Entertainment"><td>Speedrun.com</td><td>Gaming & Entertainment</td><td><code>speedrun.com/users/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Gaming & Entertainment"><td>osu!</td><td>Gaming & Entertainment</td><td><code>osu.ppy.sh/users/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Gaming & Entertainment"><td>Letterboxd</td><td>Gaming & Entertainment</td><td><code>letterboxd.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Gaming & Entertainment"><td>Chessgames</td><td>Gaming & Entertainment</td><td><code>chessgames.com/perl/chessplayer?pid={username}</code></td><td>Content Absent</td></tr>
+
+              <!-- Design & Audio (10) -->
               <tr data-category="Design & Audio"><td>SoundCloud</td><td>Design & Audio</td><td><code>soundcloud.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>Spotify</td><td>Design & Audio</td><td><code>open.spotify.com/user/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>Bandcamp</td><td>Design & Audio</td><td><code>{username}.bandcamp.com</code></td><td>Status Code</td></tr>
               <tr data-category="Design & Audio"><td>Behance</td><td>Design & Audio</td><td><code>behance.net/{username}</code></td><td>Status Code</td></tr>
               <tr data-category="Design & Audio"><td>Dribbble</td><td>Design & Audio</td><td><code>dribbble.com/{username}</code></td><td>Status Code</td></tr>
               <tr data-category="Design & Audio"><td>Flickr</td><td>Design & Audio</td><td><code>flickr.com/people/{username}</code></td><td>Status Code</td></tr>
-              <tr data-category="Publishing"><td>Substack</td><td>Publishing</td><td><code>{username}.substack.com</code></td><td>Status Code</td></tr>
-              <tr data-category="Publishing"><td>Wikipedia</td><td>Publishing</td><td><code>en.wikipedia.org/wiki/User:{username}</code></td><td>Content Analysis & Sockpuppet Check</td></tr>
-              <tr data-category="Publishing"><td>Instructables</td><td>Publishing</td><td><code>instructables.com/member/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>500px</td><td>Design & Audio</td><td><code>500px.com/p/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>DeviantArt</td><td>Design & Audio</td><td><code>deviantart.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>Unsplash</td><td>Design & Audio</td><td><code>unsplash.com/@{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>Mixcloud</td><td>Design & Audio</td><td><code>mixcloud.com/{username}</code></td><td>Status Code</td></tr>
+
+              <!-- Publishing & Knowledge (7) -->
+              <tr data-category="Publishing & Knowledge"><td>Substack</td><td>Publishing & Knowledge</td><td><code>{username}.substack.com</code></td><td>Status Code</td></tr>
+              <tr data-category="Publishing & Knowledge"><td>Medium</td><td>Publishing & Knowledge</td><td><code>medium.com/@{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Publishing & Knowledge"><td>Wikipedia</td><td>Publishing & Knowledge</td><td><code>en.wikipedia.org/wiki/User:{username}</code></td><td>Content Analysis & Sockpuppet Check</td></tr>
+              <tr data-category="Publishing & Knowledge"><td>Instructables</td><td>Publishing & Knowledge</td><td><code>instructables.com/member/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Publishing & Knowledge"><td>Goodreads</td><td>Publishing & Knowledge</td><td><code>goodreads.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Publishing & Knowledge"><td>Duolingo</td><td>Publishing & Knowledge</td><td><code>duolingo.com/profile/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Publishing & Knowledge"><td>Patreon</td><td>Publishing & Knowledge</td><td><code>patreon.com/{username}</code></td><td>Status Code</td></tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- OpSec & Proxy Support -->
+      <section id="proxy-opsec">
+        <h2 id="proxy-heading">OpSec Proxy & Anonymity Support</h2>
+        <p>Investigators and red teams requiring stealth and rate-limit avoidance can route all outbound reconnaissance through an HTTP or HTTPS proxy (including Tor bridges and corporate proxies).</p>
+
+        <div class="callout callout-security">
+          <span class="callout-icon">🕵️</span>
+          <div>
+            <strong>100% Dependency-Free OpSec:</strong><br>
+            Powered natively by Python's <code>urllib.request.ProxyHandler</code>. Configured proxies are applied across concurrent username workers, threat intelligence lookups (Shodan InternetDB, IP2Location), and external APIs.
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code># Route username hunting through a local proxy
+./osint torvalds --proxy http://127.0.0.1:8080
+
+# Use Tor SOCKS / HTTP wrapper
+./osint torvalds -p http://127.0.0.1:9050
+
+# Proxy specialized intelligence lookups
+./osint ip2location 8.8.8.8 --proxy http://proxy.corp:3128
+./search_shodan 1.1.1.1 -p http://127.0.0.1:8080</code></pre>
         </div>
       </section>
 
@@ -436,7 +508,7 @@ cd osint-toolkit
       <!-- Output & Options -->
       <section id="output-formats">
         <h2 id="output-heading">Output & Options</h2>
-        <p>By default, interactive terminal executions display the formatted ASCII/Unicode card. For piping or automated processing, pure JSON output is available.</p>
+        <p>By default, interactive terminal executions display the formatted ASCII/Unicode card. For pipelines, SIEM ingestion, or spreadsheets, pure JSON and standard RFC 4180 CSV formats are supported.</p>
 
         <div class="code-block">
           <div class="code-header">
@@ -446,10 +518,14 @@ cd osint-toolkit
           <pre><code># Output pure JSON to stdout
 ./osint torvalds -j
 
-# Save JSON report to a file while displaying visual summary
-./osint torvalds -o torvalds.json
+# Output standard CSV to stdout
+./osint torvalds --csv
 
-# Pipe JSON into jq for instant analysis
+# Save findings directly to CSV or JSON
+./osint torvalds -o findings.csv
+./osint torvalds -o findings.json
+
+# Pipe JSON into jq for instant filtering
 ./osint google.com -j | jq '.dns.addresses'</code></pre>
         </div>
 
@@ -468,9 +544,15 @@ cd osint-toolkit
               <tr><td><code>target</code></td><td>Positional</td><td>None</td><td>Domain (e.g. <code>google.com</code>) or username (e.g. <code>drowlink</code>). Auto-detected.</td></tr>
               <tr><td><code>-u, --username</code></td><td>String</td><td>None</td><td>Explicitly forces username search across social platforms.</td></tr>
               <tr><td><code>-d, --domain</code></td><td>String</td><td>None</td><td>Explicitly forces domain reconnaissance mode.</td></tr>
+              <tr><td><code>-p, --proxy</code></td><td>URL</td><td>None</td><td>Route all network traffic through an anonymous HTTP/HTTPS or Tor proxy.</td></tr>
+              <tr><td><code>--csv</code></td><td>Flag</td><td>False</td><td>Emits standard RFC 4180 CSV output instead of terminal card.</td></tr>
               <tr><td><code>-j, --json</code></td><td>Flag</td><td>False</td><td>Emits raw JSON instead of the visual summary card.</td></tr>
-              <tr><td><code>-o, --output</code></td><td>File Path</td><td>None</td><td>Saves the full JSON report to the specified file.</td></tr>
+              <tr><td><code>-o, --output</code></td><td>File Path</td><td>None</td><td>Saves full report to the specified file (JSON or CSV based on extension/flag).</td></tr>
               <tr><td><code>-t, --timeout</code></td><td>Float</td><td>8.0</td><td>Global deadline in seconds for all operations.</td></tr>
+              <tr><td><code>-s, --summary</code></td><td>Flag</td><td>False</td><td>Forces human-readable summary card even in piped output.</td></tr>
+              <tr><td><code>--ai, --ollama</code></td><td>Flag</td><td>False</td><td>Generates executive AI intelligence briefing using local Ollama LLMs.</td></tr>
+              <tr><td><code>--ai-model</code></td><td>String</td><td>None</td><td>Specifies local Ollama model (e.g. <code>llama3</code>, <code>mistral</code>, <code>qwen2.5</code>).</td></tr>
+              <tr><td><code>--ai-endpoint</code></td><td>URL</td><td>None</td><td>Custom Ollama API endpoint (default: <code>http://localhost:11434</code>).</td></tr>
             </tbody>
           </table>
         </div>
@@ -519,7 +601,7 @@ cd osint-toolkit
       <!-- Testing -->
       <section id="testing">
         <h2 id="testing-heading">Testing & Verification</h2>
-        <p>Run the comprehensive test suite locally. All 54 unit tests run without requiring any external packages or active Internet connection:</p>
+        <p>Run the comprehensive test suite locally. All 83 unit tests run without requiring any external packages or active Internet connection:</p>
 
         <div class="code-block">
           <div class="code-header">
@@ -541,6 +623,7 @@ cd osint-toolkit
         <li class="toc-item"><a href="#quickstart-heading">Quickstart</a></li>
         <li class="toc-item"><a href="#username-heading">Username Hunter</a></li>
         <li class="toc-item"><a href="#platforms-directory">Platform Directory</a></li>
+        <li class="toc-item"><a href="#proxy-heading">OpSec Proxy Support</a></li>
         <li class="toc-item"><a href="#domain-heading">Domain Recon</a></li>
         <li class="toc-item"><a href="#intel-services-heading">Threat & Intel Services</a></li>
         <li class="toc-item"><a href="#local-ai-heading">Local AI (Ollama)</a></li>
