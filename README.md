@@ -31,7 +31,7 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"/>
   <img src="https://img.shields.io/badge/dependencies-zero-brightgreen.svg" alt="Zero Dependencies"/>
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"/>
-  <img src="https://img.shields.io/badge/tests-67%20passing-success.svg" alt="Tests 67 passing"/>
+  <img src="https://img.shields.io/badge/tests-76%20passing-success.svg" alt="Tests 76 passing"/>
 </p>
 
 <p align="center">
@@ -43,6 +43,7 @@
 ## Key Highlights
 
 - ⚡ **Zero External Dependencies**: Built 100% on Python's standard library (`urllib`, `socket`, `ssl`, `concurrent.futures`).
+- 🤖 **Local AI Native (Ollama)**: Automated threat synthesis and identity correlation using local LLMs with zero API keys and complete privacy.
 - 🛡️ **Strictly Passive & Bounded**: No port scans, no brute forcing, and no invasive probing.
 - 🚀 **High Concurrency**: Multi-threaded execution inspects dozens of platforms and records in seconds.
 - 🖥️ **Modern Terminal UI**: Sleek UTF-8 tree hierarchy formatting with colors and status badges.
@@ -128,7 +129,22 @@ Run standalone commands or subcommands for deep external intelligence:
 ./search_censys google.com
 ```
 
-### 4. Python Library Usage
+### 4. Local AI Intelligence Briefing (Ollama)
+
+Generate an automated executive cyber assessment or subject correlation profile using your local LLM (100% private, zero cloud APIs):
+
+```bash
+# Run username hunt with local AI analysis
+./osint torvalds --ai
+
+# Run domain audit with local AI posture briefing
+./osint github.com --ai
+
+# Choose a specific local model (e.g. llama3, mistral, qwen2.5)
+./osint torvalds --ai --ai-model mistral
+```
+
+### 5. Python Library Usage
 
 All engines are directly importable as pure Python functions:
 
@@ -140,16 +156,15 @@ from osint_toolkit import (
     search_ip2location,
     search_virustotal,
     search_censys,
+    generate_ai_briefing,
 )
 
 # Search usernames
 profiles = search_username("torvalds")
 
-# Shodan host intelligence
-shodan_info = search_shodan("8.8.8.8")
-
-# Geolocation & ASN
-geo = search_ip2location("8.8.8.8")
+# Generate local AI intelligence briefing
+ai_summary = generate_ai_briefing(profiles, model="llama3")
+print(ai_summary["briefing"])
 ```
 
 ---
