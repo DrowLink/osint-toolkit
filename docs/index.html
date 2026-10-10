@@ -186,7 +186,7 @@ cd osint-toolkit
         <p><code>osint-toolkit</code> automatically detects whether your target is a <strong>username</strong> or a <strong>domain</strong>, and renders a clean, hacker-style UTF-8 terminal interface by default.</p>
 
         <h3>1. Search a Username (Sherlock Mode)</h3>
-        <p>Simply pass any handle or username. It checks 23+ platforms simultaneously:</p>
+        <p>Simply pass any handle or username. It checks 56+ verified platforms simultaneously:</p>
 
         <div class="code-block">
           <div class="code-header">
@@ -196,37 +196,11 @@ cd osint-toolkit
           <pre><code>./osint torvalds</code></pre>
         </div>
 
-        <div class="code-block">
-          <div class="code-header">
-            <span>Example Output</span>
-            <button class="copy-btn">📋 Copy</button>
-          </div>
-          <pre><code>┌──────────────────────────────────────────────────────────────┐
-│  ⚡ OSINT USERNAME REPORT: @torvalds                          │
-│  Checked: 23 platforms  •  Found: 13                         │
-└──────────────────────────────────────────────────────────────┘
-
-👤 [Profiles Found: 13]
-  ├── [Coding & Tech]
-  │   ├── ✔ Docker Hub:    https://hub.docker.com/u/torvalds
-  │   ├── ✔ GitHub:        https://github.com/torvalds
-  │   ├── ✔ HackerNews:    https://news.ycombinator.com/user?id=torvalds
-  │   ├── ✔ Keybase:       https://keybase.io/torvalds
-  │   ├── ✔ Pastebin:      https://pastebin.com/u/torvalds
-  │   └── ✔ Replit:        https://replit.com/@torvalds
-  ├── [Gaming & Chess]
-  │   ├── ✔ Chess.com:     https://www.chess.com/member/torvalds
-  │   ├── ✔ Lichess:       https://lichess.org/@/torvalds
-  │   └── ✔ Steam:         https://steamcommunity.com/id/torvalds
-  └── [Social & Messaging]
-      ├── ✔ Disqus:        https://disqus.com/by/torvalds/
-      └── ✔ Telegram:      https://t.me/torvalds
-
-❌ [Not Found: 10]
-  └── Codeberg, Dev.to, Behance, Dribbble, Flickr, itch.io, Wikipedia...</code></pre>
+        <div style="margin: 1.5rem 0;">
+          <img src="images/demo-username.png" alt="Username Reconnaissance Demo across 56+ Platforms" style="width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
         </div>
 
-        <h3>2. Analyze a Domain</h3>
+        <h3>2. Analyze a Domain Infrastructure</h3>
         <p>Pass any domain to audit DNS records, mail spoofing protection, WHOIS dates, and TLS certificates:</p>
 
         <div class="code-block">
@@ -235,6 +209,10 @@ cd osint-toolkit
             <button class="copy-btn">📋 Copy</button>
           </div>
           <pre><code>./osint github.com</code></pre>
+        </div>
+
+        <div style="margin: 1.5rem 0;">
+          <img src="images/demo-domain.png" alt="Domain Reconnaissance Demo" style="width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
         </div>
       </section>
 
@@ -489,19 +467,8 @@ cd osint-toolkit
 ./osint torvalds --ai --ai-model mistral --ai-endpoint http://localhost:11434</code></pre>
         </div>
 
-        <div class="code-block">
-          <div class="code-header">
-            <span>Example AI Output Card</span>
-            <button class="copy-btn">📋 Copy</button>
-          </div>
-          <pre><code>┌──────────────────────────────────────────────────────────────┐
-│  🤖 LOCAL AI INTELLIGENCE BRIEFING (llama3)                   │
-│  Engine: Ollama Local LLM  •  Endpoint: http://localhost:11434│
-└──────────────────────────────────────────────────────────────┘
-
-  • Identity Summary: Software developer and open-source creator. Active on GitHub, Keybase, and Docker Hub.
-  • Platform Correlation: Consistent tech footprints across dev platforms; gaming activity detected on Chess.com and Steam.
-  • Key Leads: Public profile links correlate with verified developer identities. No high-risk exposures.</code></pre>
+        <div style="margin: 1.5rem 0;">
+          <img src="images/demo-intel.png" alt="Shodan Threat Intelligence & Local AI Synthesis Demo" style="width: 100%; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.5);">
         </div>
       </section>
 

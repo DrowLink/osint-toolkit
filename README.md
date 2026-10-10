@@ -35,7 +35,13 @@
 </p>
 
 <p align="center">
-  <img width="85%" src="images/demo.png" alt="DrowLink OSINT Toolkit Demo"/>
+  <img width="95%" src="images/demo-username.png" alt="Username Reconnaissance across 56+ Platforms"/>
+</p>
+
+<p align="center">
+  <img width="48%" src="images/demo-domain.png" alt="Domain Infrastructure & Email Spoofing Audit Demo"/>
+  &nbsp;
+  <img width="48%" src="images/demo-intel.png" alt="Shodan Threat Intelligence & Local AI Analysis Demo"/>
 </p>
 
 ---
