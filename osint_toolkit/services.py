@@ -49,7 +49,9 @@ def resolve_target_ip(target: str, timeout: float = 5.0) -> str:
         return clean
 
     # Resolve domain to public IP
-    addresses = resolve_public_addresses(clean, timeout=timeout)
+    import time
+    deadline = time.monotonic() + timeout
+    addresses = resolve_public_addresses(clean, deadline=deadline)
     if not addresses:
         raise ValueError(f"Could not resolve any public IP for domain {clean}")
     # Prefer IPv4
