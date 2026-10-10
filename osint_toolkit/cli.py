@@ -16,20 +16,27 @@ from .username import UsernameValidationError, search_username
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="osint-toolkit",
-        description="Collect bounded, passive OSINT metadata for a public domain or search usernames across platforms.",
+        description="Fast, dependency-free OSINT toolkit for domains and usernames.",
     )
     parser.add_argument(
         "target",
         nargs="?",
         default=None,
-        help="Public domain or HTTPS URL (domain mode)",
+        help="Target domain (e.g. google.com) or username (e.g. drowlink)",
     )
     parser.add_argument(
         "-u",
         "--username",
         type=str,
         default=None,
-        help="Username to search across social and tech platforms (Sherlock mode)",
+        help="Explicitly search username across public platforms (Sherlock mode)",
+    )
+    parser.add_argument(
+        "-d",
+        "--domain",
+        type=str,
+        default=None,
+        help="Explicitly analyze domain infrastructure",
     )
     parser.add_argument(
         "-t",
@@ -46,10 +53,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to write JSON report output (default: stdout)",
     )
     parser.add_argument(
+        "-j",
+        "--json",
+        action="store_true",
+        help="Output raw JSON instead of human-readable summary",
+    )
+    parser.add_argument(
         "-s",
         "--summary",
         action="store_true",
-        help="Print a human-readable summary instead of raw JSON",
+        help="Display human-readable summary card (default in terminal)",
     )
     return parser
 
@@ -367,12 +380,34 @@ def main(
         stderr.write("error: timeout must be positive\n")
         return 2
 
-    if not args.target and not args.username:
-        stderr.write("error: target domain or -u/--username must be provided\n")
+    if args.username:
+        is_username_mode = True
+        target_value = args.username
+    elif args.domain:
+        is_username_mode = False
+        target_value = args.domain
+    elif args.target:
+        target_str = args.target.strip()
+        lower_target = target_str.lower()
+        if (
+            lower_target in {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+            or lower_target.endswith(".local")
+            or lower_target.endswith(".internal")
+        ):
+            is_username_mode = False
+            target_value = target_str
+        elif target_str.startswith("@"):
+            is_username_mode = True
+            target_value = target_str.lstrip("@")
+        elif "." in target_str or "://" in target_str:
+            is_username_mode = False
+            target_value = target_str
+        else:
+            is_username_mode = True
+            target_value = target_str
+    else:
+        stderr.write("error: target domain or username must be provided\n")
         return 2
-
-    is_username_mode = bool(args.username)
-    target_value = args.username if is_username_mode else args.target
 
     try:
         if is_username_mode:
@@ -398,10 +433,12 @@ def main(
             stderr.write(f"error: failed to write output file: {exc}\n")
             return 2
 
-    if args.summary:
+    is_tty = hasattr(stdout, "isatty") and stdout.isatty()
+    show_summary = args.summary or (is_tty and not args.json)
+
+    if show_summary:
         import os
 
-        is_tty = hasattr(stdout, "isatty") and stdout.isatty()
         use_color = (
             is_tty and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
         )
@@ -410,7 +447,7 @@ def main(
         else:
             stdout.write(format_summary(report, use_color=use_color))
         stdout.write("\n")
-    elif not args.output:
+    elif not args.output or args.json:
         json.dump(report, stdout, indent=2, sort_keys=True)
         stdout.write("\n")
     return 0

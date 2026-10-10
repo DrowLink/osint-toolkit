@@ -21,6 +21,7 @@ dependencies = []
 
 [project.scripts]
 osint-toolkit = "osint_toolkit.cli:main"
+osint = "osint_toolkit.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/DrowLink/osint-toolkit"
