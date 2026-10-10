@@ -62,6 +62,7 @@
           <li class="sidebar-nav-item"><a href="#domain-recon">Domain Reconnaissance</a></li>
           <li class="sidebar-nav-item"><a href="#email-security">Email Security (SPF/DMARC)</a></li>
           <li class="sidebar-nav-item"><a href="#intel-services">Threat & Intel Services</a></li>
+          <li class="sidebar-nav-item"><a href="#local-ai">Local AI (Ollama)</a></li>
           <li class="sidebar-nav-item"><a href="#output-formats">Output & Formatting</a></li>
         </ul>
       </div>
@@ -366,6 +367,56 @@ cd osint-toolkit
         </div>
       </section>
 
+      <!-- Local AI Integration (Ollama) -->
+      <section id="local-ai">
+        <h2 id="local-ai-heading">Local AI Integration (Ollama)</h2>
+        <p>Harness the power of local Large Language Models (LLMs) via <strong>Ollama</strong> for automated threat synthesis, cross-platform correlation, and identity profiling — with <strong>zero cloud API keys and complete privacy</strong>.</p>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">🤖</span>
+          <div>
+            <strong>100% Python Native & Resilient:</strong><br>
+            Connects directly to your local Ollama instance (<code>http://localhost:11434</code>) using Python's built-in standard library. If Ollama is offline, the CLI continues executing normally and prints a clean, non-fatal advisory notice.
+          </div>
+        </div>
+
+        <h3>Running with AI Synthesis</h3>
+        <p>Pass the <code>--ai</code> (or <code>--ollama</code>) flag to any command to generate an AI Intelligence Briefing:</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code># Username correlation briefing
+./osint torvalds --ai
+
+# Domain infrastructure posture analysis
+./osint github.com --ai
+
+# Threat scan with AI risk briefing
+./osint shodan 8.8.8.8 --ai
+
+# Custom model and endpoint
+./osint torvalds --ai --ai-model mistral --ai-endpoint http://localhost:11434</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>Example AI Output Card</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code>┌──────────────────────────────────────────────────────────────┐
+│  🤖 LOCAL AI INTELLIGENCE BRIEFING (llama3)                   │
+│  Engine: Ollama Local LLM  •  Endpoint: http://localhost:11434│
+└──────────────────────────────────────────────────────────────┘
+
+  • Identity Summary: Software developer and open-source creator. Active on GitHub, Keybase, and Docker Hub.
+  • Platform Correlation: Consistent tech footprints across dev platforms; gaming activity detected on Chess.com and Steam.
+  • Key Leads: Public profile links correlate with verified developer identities. No high-risk exposures.</code></pre>
+        </div>
+      </section>
+
       <!-- Output & Options -->
       <section id="output-formats">
         <h2 id="output-heading">Output & Options</h2>
@@ -476,6 +527,7 @@ cd osint-toolkit
         <li class="toc-item"><a href="#platforms-directory">Platform Directory</a></li>
         <li class="toc-item"><a href="#domain-heading">Domain Recon</a></li>
         <li class="toc-item"><a href="#intel-services-heading">Threat & Intel Services</a></li>
+        <li class="toc-item"><a href="#local-ai-heading">Local AI (Ollama)</a></li>
         <li class="toc-item"><a href="#output-heading">Output & Options</a></li>
         <li class="toc-item"><a href="#safety-heading">Safety & Limits</a></li>
         <li class="toc-item"><a href="#specs-heading">Documentation Policy</a></li>
