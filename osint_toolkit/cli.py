@@ -10,7 +10,14 @@ from typing import Any, TextIO
 
 from .collector import collect_report
 from .core import DomainValidationError
+from .services import (
+    search_censys,
+    search_ip2location,
+    search_shodan,
+    search_virustotal,
+)
 from .username import UsernameValidationError, search_username
+
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -366,6 +373,286 @@ def format_username_summary(report: dict[str, Any], *, use_color: bool = True) -
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Specialized Service Formatters
+# ---------------------------------------------------------------------------
+
+def format_shodan_summary(report: dict[str, Any], *, use_color: bool = True) -> str:
+    def c(code: str, text: str) -> str:
+        return f"\033[{code}m{text}\033[0m" if use_color else text
+
+    lines: list[str] = []
+    ip = report.get("ip", report.get("target", "unknown"))
+    source = report.get("source", "internetdb")
+    found = report.get("found", False)
+
+    lines.append(c("1;35", "┌" + "─" * 62 + "┐"))
+    lines.append(c("1;35", f"│  ⚡ SHODAN INTELLIGENCE: {ip}".ljust(63) + "│"))
+    status_text = "Indexed" if found else "No data indexed"
+    lines.append(c("90", f"│  Source: {source}  •  Status: {status_text}".ljust(63) + "│"))
+    lines.append(c("1;35", "└" + "─" * 62 + "┘"))
+    lines.append("")
+
+    if not found:
+        msg = report.get("message") or report.get("error") or "No records found in Shodan"
+        lines.append(c("33", f"⚠️  {msg}"))
+        lines.append(f"  └── Web: {report.get('web_url', '')}")
+        return "\n".join(lines)
+
+    ports = report.get("ports", [])
+    vulns = report.get("vulns", [])
+    cpes = report.get("cpes", [])
+    hostnames = report.get("hostnames", [])
+    tags = report.get("tags", [])
+
+    lines.append(c("1;34", f"🔌 [Exposed Ports: {len(ports)}]"))
+    if ports:
+        port_strs = [str(p) for p in ports]
+        lines.append(f"  ├── Ports:       {c('32', ', '.join(port_strs))}")
+    else:
+        lines.append(c("90", "  ├── Ports:       None reported"))
+
+    if hostnames:
+        lines.append(f"  ├── Hostnames:   {', '.join(hostnames[:6])}")
+    if tags:
+        lines.append(f"  ├── Tags:        {', '.join(tags)}")
+    if cpes:
+        lines.append(f"  ├── CPEs:        {', '.join(cpes[:4])}")
+
+    lines.append("")
+    vuln_color = "1;31" if vulns else "1;32"
+    lines.append(c(vuln_color, f"🛡️  [Vulnerabilities / CVEs: {len(vulns)}]"))
+    if vulns:
+        lines.append(f"  ├── Known CVEs:  {c('31', ', '.join(vulns[:8]))}")
+    else:
+        lines.append(f"  └── Status:      {c('32', '✔ No known vulnerabilities reported')}")
+
+    lines.append("")
+    lines.append(c("90", f"🔗 Shodan Report: {report.get('web_url', '')}"))
+    return "\n".join(lines)
+
+
+def format_ip2location_summary(report: dict[str, Any], *, use_color: bool = True) -> str:
+    def c(code: str, text: str) -> str:
+        return f"\033[{code}m{text}\033[0m" if use_color else text
+
+    lines: list[str] = []
+    ip = report.get("ip", report.get("target", "unknown"))
+    found = report.get("found", False)
+
+    lines.append(c("1;34", "┌" + "─" * 62 + "┐"))
+    lines.append(c("1;34", f"│  ⚡ IP2LOCATION INTELLIGENCE: {ip}".ljust(63) + "│"))
+    country = report.get("country_name") or "Unknown"
+    city = report.get("city_name") or "Unknown"
+    lines.append(c("90", f"│  Location: {city}, {country}".ljust(63) + "│"))
+    lines.append(c("1;34", "└" + "─" * 62 + "┘"))
+    lines.append("")
+
+    if not found:
+        lines.append(c("33", f"⚠️  {report.get('error', 'Location lookup failed')}"))
+        return "\n".join(lines)
+
+    lines.append(c("1;32", "📍 [Geolocation & Routing]"))
+    lines.append(f"  ├── Country:     {report.get('country_name')} ({report.get('country_code', '')})")
+    lines.append(f"  ├── Region/City: {report.get('region_name')}, {report.get('city_name')} (ZIP: {report.get('zip_code', 'N/A')})")
+    lines.append(f"  ├── Coordinates: {report.get('latitude')}, {report.get('longitude')} (TZ: {report.get('time_zone', 'N/A')})")
+    lines.append(f"  ├── ASN / Org:   AS{report.get('asn', 'N/A')} ({report.get('as', 'N/A')})")
+
+    is_proxy = report.get("is_proxy", False)
+    proxy_badge = c("31", "⚠️ PROXY / VPN DETECTED") if is_proxy else c("32", "✔ Clean / Residential")
+    lines.append(f"  └── Proxy/VPN:   {proxy_badge}")
+    lines.append("")
+    lines.append(c("90", f"🔗 IP2Location:  {report.get('web_url', '')}"))
+    return "\n".join(lines)
+
+
+def format_virustotal_summary(report: dict[str, Any], *, use_color: bool = True) -> str:
+    def c(code: str, text: str) -> str:
+        return f"\033[{code}m{text}\033[0m" if use_color else text
+
+    lines: list[str] = []
+    resource = report.get("resource", report.get("target", "unknown"))
+    auth = report.get("authenticated", False)
+
+    lines.append(c("1;36", "┌" + "─" * 62 + "┐"))
+    lines.append(c("1;36", f"│  ⚡ VIRUSTOTAL REPORT: {resource}".ljust(63) + "│"))
+    auth_str = "API Key" if auth else "Unauthenticated"
+    lines.append(c("90", f"│  Type: {report.get('type', 'resource')}  •  Auth: {auth_str}".ljust(63) + "│"))
+    lines.append(c("1;36", "└" + "─" * 62 + "┘"))
+    lines.append("")
+
+    if not auth:
+        lines.append(c("33", "ℹ️  VirusTotal API Key Not Configured"))
+        lines.append("  ├── Set environment variable: export VIRUSTOTAL_API_KEY=\"<your_key>\"")
+        lines.append("  ├── Or pass directly:         --api-key <your_key>")
+        lines.append(f"  └── Web GUI Analysis:         {report.get('web_url', '')}")
+        return "\n".join(lines)
+
+    malicious = report.get("malicious_count", 0)
+    suspicious = report.get("suspicious_count", 0)
+    harmless = report.get("harmless_count", 0)
+    reputation = report.get("reputation", 0)
+
+    if malicious > 0:
+        status_badge = c("1;31", f"🚨 MALICIOUS ({malicious} security vendors flagged this target)")
+    elif suspicious > 0:
+        status_badge = c("1;33", f"⚠️ SUSPICIOUS ({suspicious} security vendors flagged this target)")
+    else:
+        status_badge = c("1;32", "✔ CLEAN / HARMLESS (0 malicious detections)")
+
+    lines.append(f"🛡️  Verdict: {status_badge}")
+    lines.append(c("1;34", "📊 [Detection Statistics]"))
+    lines.append(f"  ├── Harmless:    {c('32', str(harmless))} vendors")
+    lines.append(f"  ├── Malicious:   {c('31' if malicious else '32', str(malicious))} vendors")
+    lines.append(f"  ├── Suspicious:  {c('33' if suspicious else '32', str(suspicious))} vendors")
+    lines.append(f"  └── Reputation:  {reputation}")
+
+    engines = report.get("malicious_engines", [])
+    if engines:
+        lines.append(f"  ├── Flagged By:  {c('31', ', '.join(engines[:8]))}")
+
+    lines.append("")
+    lines.append(c("90", f"🔗 Web Report:   {report.get('web_url', '')}"))
+    return "\n".join(lines)
+
+
+def format_censys_summary(report: dict[str, Any], *, use_color: bool = True) -> str:
+    def c(code: str, text: str) -> str:
+        return f"\033[{code}m{text}\033[0m" if use_color else text
+
+    lines: list[str] = []
+    ip = report.get("ip", report.get("target", "unknown"))
+    auth = report.get("authenticated", False)
+
+    lines.append(c("1;35", "┌" + "─" * 62 + "┐"))
+    lines.append(c("1;35", f"│  ⚡ CENSYS INTELLIGENCE: {ip}".ljust(63) + "│"))
+    auth_str = "Authenticated" if auth else "API Credentials Required"
+    lines.append(c("90", f"│  Status: {auth_str}".ljust(63) + "│"))
+    lines.append(c("1;35", "└" + "─" * 62 + "┘"))
+    lines.append("")
+
+    if not auth:
+        lines.append(c("33", "ℹ️  Censys API Credentials Not Configured"))
+        lines.append("  ├── Set variables: export CENSYS_API_ID=\"...\" CENSYS_API_SECRET=\"...\"")
+        lines.append("  ├── Or pass:       --api-id <id> --api-secret <secret>")
+        lines.append(f"  └── Web Portal:    {report.get('web_url', '')}")
+        return "\n".join(lines)
+
+    services = report.get("services", [])
+    as_info = report.get("autonomous_system", {})
+    loc = report.get("location", {})
+
+    lines.append(c("1;34", f"🌐 [Services & Ports: {len(services)}]"))
+    for s in services[:8]:
+        lines.append(f"  ├── Port {s.get('port')}: {s.get('service_name', 'unknown')} ({s.get('transport_protocol', 'TCP')})")
+
+    lines.append(c("1;32", "📍 [Routing & Location]"))
+    lines.append(f"  ├── ASN:         AS{as_info.get('asn', 'N/A')} ({as_info.get('name', 'N/A')})")
+    lines.append(f"  └── Country:     {loc.get('country', 'N/A')}, {loc.get('city', 'N/A')}")
+    lines.append("")
+    lines.append(c("90", f"🔗 Censys Host:  {report.get('web_url', '')}"))
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Standalone CLI Runners
+# ---------------------------------------------------------------------------
+
+def _run_service_cli(
+    service_name: str,
+    runner: Callable[..., dict[str, Any]],
+    formatter: Callable[[dict[str, Any]], str],
+    argv: Sequence[str] | None,
+    *,
+    extra_parser_args: Callable[[argparse.ArgumentParser], None] | None = None,
+    stdout: TextIO = sys.stdout,
+    stderr: TextIO = sys.stderr,
+) -> int:
+    parser = argparse.ArgumentParser(
+        prog=f"osint-{service_name}",
+        description=f"Query {service_name.capitalize()} intelligence for an IP or domain target.",
+    )
+    parser.add_argument("target", help="Target domain (e.g. google.com) or IP address (e.g. 8.8.8.8)")
+    parser.add_argument("-t", "--timeout", type=float, default=8.0, help="Operation timeout in seconds")
+    parser.add_argument("-o", "--output", type=str, default=None, help="File path to save JSON report")
+    parser.add_argument("-j", "--json", action="store_true", help="Output raw JSON instead of formatted card")
+    parser.add_argument("-s", "--summary", action="store_true", help="Display formatted summary card")
+
+    if extra_parser_args:
+        extra_parser_args(parser)
+
+    args = parser.parse_args(argv)
+    if args.timeout <= 0:
+        stderr.write("error: timeout must be positive\n")
+        return 2
+
+    kwargs: dict[str, Any] = {"timeout": args.timeout}
+    if hasattr(args, "api_key") and args.api_key:
+        kwargs["api_key"] = args.api_key
+    if hasattr(args, "api_id") and args.api_id:
+        kwargs["api_id"] = args.api_id
+    if hasattr(args, "api_secret") and args.api_secret:
+        kwargs["api_secret"] = args.api_secret
+
+    try:
+        report = runner(args.target, **kwargs)
+    except Exception as exc:
+        stderr.write(f"error: {exc}\n")
+        return 2
+
+    if args.output:
+        try:
+            with open(args.output, "w", encoding="utf-8") as file:
+                json.dump(report, file, indent=2, sort_keys=True)
+                file.write("\n")
+        except OSError as exc:
+            stderr.write(f"error: failed to write output file: {exc}\n")
+            return 2
+
+    is_tty = hasattr(stdout, "isatty") and stdout.isatty()
+    show_summary = args.summary or (is_tty and not args.json)
+
+    if show_summary:
+        import os
+        use_color = is_tty and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
+        stdout.write(formatter(report, use_color=use_color))
+        stdout.write("\n")
+    elif not args.output or args.json:
+        json.dump(report, stdout, indent=2, sort_keys=True)
+        stdout.write("\n")
+
+    return 0
+
+
+def main_shodan(argv: Sequence[str] | None = None, *, stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
+    def add_args(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--api-key", type=str, default=None, help="Shodan API key (optional; defaults to InternetDB)")
+    return _run_service_cli("shodan", search_shodan, format_shodan_summary, argv, extra_parser_args=add_args, stdout=stdout, stderr=stderr)
+
+
+def main_ip2location(argv: Sequence[str] | None = None, *, stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
+    def add_args(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--api-key", type=str, default=None, help="IP2Location API key (optional)")
+    return _run_service_cli("ip2location", search_ip2location, format_ip2location_summary, argv, extra_parser_args=add_args, stdout=stdout, stderr=stderr)
+
+
+def main_virustotal(argv: Sequence[str] | None = None, *, stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
+    def add_args(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--api-key", type=str, default=None, help="VirusTotal API key (or VIRUSTOTAL_API_KEY env var)")
+    return _run_service_cli("virustotal", search_virustotal, format_virustotal_summary, argv, extra_parser_args=add_args, stdout=stdout, stderr=stderr)
+
+
+def main_censys(argv: Sequence[str] | None = None, *, stdout: TextIO = sys.stdout, stderr: TextIO = sys.stderr) -> int:
+    def add_args(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--api-id", type=str, default=None, help="Censys API ID (or CENSYS_API_ID env var)")
+        p.add_argument("--api-secret", type=str, default=None, help="Censys API Secret (or CENSYS_API_SECRET env var)")
+    return _run_service_cli("censys", search_censys, format_censys_summary, argv, extra_parser_args=add_args, stdout=stdout, stderr=stderr)
+
+
+# ---------------------------------------------------------------------------
+# Main Entry Point
+# ---------------------------------------------------------------------------
+
 def main(
     argv: Sequence[str] | None = None,
     *,
@@ -374,6 +661,18 @@ def main(
     collector: Callable[..., dict[str, Any]] = collect_report,
     username_collector: Callable[..., dict[str, Any]] = search_username,
 ) -> int:
+    raw_args = list(argv) if argv is not None else sys.argv[1:]
+    if raw_args:
+        first = raw_args[0].lower().replace("_", "-")
+        if first in {"shodan", "search-shodan"}:
+            return main_shodan(raw_args[1:], stdout=stdout, stderr=stderr)
+        if first in {"virustotal", "search-virustotal", "vt"}:
+            return main_virustotal(raw_args[1:], stdout=stdout, stderr=stderr)
+        if first in {"ip2location", "search-ip2location"}:
+            return main_ip2location(raw_args[1:], stdout=stdout, stderr=stderr)
+        if first in {"censys", "search-censys"}:
+            return main_censys(raw_args[1:], stdout=stdout, stderr=stderr)
+
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.timeout <= 0:
