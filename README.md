@@ -12,13 +12,15 @@
 </p>
 
 <p align="center">
+  <a href="https://drowlink.github.io/osint-toolkit/" target="_blank"><b>Documentation Site</b></a>
+  &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
   <a href="#installation">Installation</a>
   &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
   <a href="#general-usage">Usage</a>
   &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
   <a href="#what-it-collects">Features</a>
   &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
-  <a href="#safety-properties">Safety</a>
+  <a href="SPECS.md">Specs</a>
   &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
   <a href="#contributing">Contributing</a>
   &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
