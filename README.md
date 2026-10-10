@@ -1,140 +1,182 @@
-# DrowLink OSINT Toolkit
+<p align="center">
+  <br>
+  <a href="https://github.com/DrowLink/osint-toolkit" target="_blank">
+    <img src="images/logo.png" alt="DrowLink OSINT Toolkit" width="180"/>
+  </a>
+  <br>
+  <br>
+  <b>A fast, dependency-free Python CLI for passive domain infrastructure intelligence and multi-platform username hunting.</b>
+  <br>
+  <span>Hunt down infrastructure metadata, email anti-spoofing configurations, and user accounts across public platforms.</span>
+  <br>
+</p>
 
-A small, dependency-free Python CLI that collects **bounded, passive metadata** about a public domain and returns a reproducible JSON report.
+<p align="center">
+  <a href="#installation">Installation</a>
+  &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
+  <a href="#general-usage">Usage</a>
+  &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
+  <a href="#what-it-collects">Features</a>
+  &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
+  <a href="#safety-properties">Safety</a>
+  &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
+  <a href="#contributing">Contributing</a>
+  &nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;
+  <a href="#license">License</a>
+</p>
 
-## What it collects
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"/>
+  <img src="https://img.shields.io/badge/dependencies-zero-brightgreen.svg" alt="Zero Dependencies"/>
+  <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"/>
+  <img src="https://img.shields.io/badge/tests-54%20passing-success.svg" alt="Tests 54 passing"/>
+</p>
 
-- Public IPv4 and IPv6 DNS addresses (IPv6 is metadata-only)
-- Authoritative nameservers (NS) and SOA primary nameserver / administrator contact
-- Email infrastructure: MX servers with mail provider identification (Google Workspace, Microsoft 365, Proton, etc.)
-- Email spoofing protection: SPF record mechanism analysis and DMARC enforcement policy evaluation
-- Domain registration (RDAP / WHOIS): Registrar name, registration date, expiration date, and EPP domain statuses
-- IP infrastructure & Geolocation: ASN, network organization, country, and city
-- Passive subdomain discovery from Certificate Transparency (crt.sh) logs
-- Homepage status, title, meta tags (description, generator), final URL, server header, cookie security flags, and extended security-header coverage (including COOP, COEP, CORP)
-- Verified TLS certificate subject, issuer, expiry, days remaining, protocol version, cipher suite, DNS names, and SHA-256 fingerprint
-- Presence, key directives (contacts, sitemaps), and a bounded preview of `/.well-known/security.txt` and `/robots.txt`
+<p align="center">
+  <img width="85%" src="images/demo.png" alt="DrowLink OSINT Toolkit Demo"/>
+</p>
 
-It does **not** scan ports, brute-force paths, enumerate accounts, bypass access controls, or accept IP/private-network targets.
+---
 
-## Safety properties
+## Key Highlights
 
-- Rejects IP literals, custom ports, local names, every non-public-unicast DNS answer (including multicast), and domains with more than eight distinct addresses
-- Pins outbound HTTP/TLS connections to prevalidated public IPv4 addresses only
-- Verifies TLS certificates and hostnames
-- Transparently supports gzip and deflate decompression using only the standard library
-- Limits each response body to 256 KiB; responses exceeding this threshold are safely truncated (`"truncated": true`) while preserving HTTP status, headers, and metadata
-- Bounds the initial DNS metadata lookup with its own monotonic eight-second deadline; timed-out resolver work runs only in a daemon thread and cannot keep the CLI alive
-- Makes three logical HTTP fetches, each with at most four URL hops including the initial URL, plus one TLS certificate probe
-- Tries at most eight validated public IPv4 addresses per URL hop/probe: at most 96 HTTP connection attempts and eight TLS connection attempts per report (and zero when DNS has no eligible IPv4 address)
-- Uses only Python's standard library
+- ⚡ **Zero External Dependencies**: Built 100% on Python's standard library (`urllib`, `socket`, `ssl`, `concurrent.futures`).
+- 🛡️ **Strictly Passive & Bounded**: No port scans, no brute forcing, and no invasive probing.
+- 🚀 **High Concurrency**: Multi-threaded execution inspects dozens of platforms and records in seconds.
+- 🖥️ **Modern Terminal UI**: Sleek UTF-8 tree hierarchy formatting with colors and status badges.
+- 📁 **Dual Output**: Terminal summary cards (`-s`) or reproducible, structured JSON exports (`-o`).
 
-### IPv6/NAT64 limitation
+---
 
-The report retains validated public AAAA records as DNS metadata, but the toolkit never opens HTTP or TLS connections to IPv6 addresses. Arbitrary, network-specific NAT64 prefixes cannot be identified reliably from an IPv6 address alone; allowing IPv6 connections could therefore translate a seemingly public address into a private IPv4 destination. An IPv6-only target receives structured `network_probe_error` results for web, TLS, and file probes. IPv4-mapped IPv6, 6to4, Teredo, and the well-known NAT64 prefix are still checked as defense in depth.
+## Installation
 
-The deadlines above are per operation, not one deadline for the complete report. A full report performs one initial DNS lookup, three HTTP operations, and one TLS operation sequentially.
-
-## Requirements
-
-Python 3.11 or newer.
-
-## Run without installing
-
-```bash
-python3 -m osint_toolkit example.com
-```
-
-Print a human-readable terminal summary:
-
-```bash
-python3 -m osint_toolkit example.com -s
-```
-
-Save the JSON report directly to a file:
-
-```bash
-python3 -m osint_toolkit example.com -o example.com.json
-```
-
-Display summary on terminal while saving full JSON to a file:
+| Method | Command | Notes |
+| :--- | :--- | :--- |
+| **Direct Run** *(No install)* | `python3 -m osint_toolkit <target>` | Works immediately on any system with Python 3.11+ |
+| **Local Virtualenv** | `pip install .` | Installs `osint-toolkit` as a global executable command |
+| **Docker** | `docker run -it --rm osint-toolkit <target>` | Portable container execution |
 
 ```bash
-python3 -m osint_toolkit example.com -s -o example.com.json
+# Clone the repository
+git clone https://github.com/DrowLink/osint-toolkit.git
+cd osint-toolkit
+
+# Run directly
+python3 -m osint_toolkit --help
 ```
 
-Or customize the deadline timeout (e.g. 5 seconds):
+---
+
+## General Usage
+
+### 1. Domain Reconnaissance Mode
+
+Investigate a public domain's complete infrastructure, mail security, certificates, and policies:
 
 ```bash
-python3 -m osint_toolkit example.com -t 5.0
+# Display formatted terminal summary
+python3 -m osint_toolkit google.com -s
+
+# Output raw structured JSON
+python3 -m osint_toolkit google.com
+
+# Save report directly to a file
+python3 -m osint_toolkit google.com -o google.json
+
+# Display summary while saving full JSON report
+python3 -m osint_toolkit google.com -s -o google.json
 ```
 
-### Search usernames across platforms (Sherlock mode)
+### 2. Username Hunting Mode (Sherlock Mode)
 
 Search a username concurrently across 20+ social, tech, and developer platforms:
 
 ```bash
+# Search a username with terminal tree summary
 python3 -m osint_toolkit -u torvalds -s
-```
 
-Save username results to a JSON file:
-
-```bash
+# Save found accounts to a JSON report
 python3 -m osint_toolkit -u torvalds -o torvalds.json
 ```
 
-## Install locally
+---
 
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install .
-osint-toolkit example.com -s -o report.json
+## What It Collects
+
+### Domain Mode
+- **DNS & Nameservers**: Public IPv4 & IPv6 addresses, authoritative nameservers (NS), and SOA primary server/administrator contact.
+- **Email & Anti-Spoofing**: MX servers with provider identification (*Google Workspace, Microsoft 365, Proton, etc.*), SPF mechanism strength evaluation, and DMARC enforcement policy (`reject`, `quarantine`, `none`).
+- **Domain Registration (RDAP / WHOIS)**: Official registrar, registration/expiration dates, and EPP domain statuses.
+- **IP Infrastructure & Geolocation**: Public IP ASN, ISP organization, country, region, and city.
+- **Subdomains**: Historical subdomain discovery via Certificate Transparency (crt.sh) logs.
+- **Web & Security Headers**: HTTP status, page title, server banner, cookie security flags (`Secure`, `HttpOnly`, `SameSite`), and defensive headers (*HSTS, CSP, COOP, COEP, etc.*).
+- **TLS Certificate**: Subject, issuer, cipher suite, protocol, expiry, days remaining, and Subject Alternative Names (SANs).
+- **Public Policy Files**: Presence, contacts, and sitemaps in `/.well-known/security.txt` and `/robots.txt`.
+
+### Username Mode
+- **Coding & Tech**: GitHub, Codeberg, Docker Hub, Dev.to, Keybase, HackerNews, Replit, Pastebin.
+- **Social & Messaging**: Telegram, Disqus, Linktree, Gravatar.
+- **Gaming & Chess**: Steam, Chess.com, Lichess, itch.io.
+- **Design & Audio**: Behance, Dribbble, Flickr, SoundCloud.
+- **Knowledge & Publishing**: Substack, Wikipedia *(with sockpuppet/blocked account detection)*, Instructables.
+
+---
+
+## CLI Options
+
+```console
+$ python3 -m osint_toolkit --help
+usage: osint-toolkit [-h] [-u USERNAME] [-t TIMEOUT] [-o OUTPUT] [-s] [target]
+
+Collect bounded, passive OSINT metadata for a public domain or search usernames across platforms.
+
+positional arguments:
+  target                Public domain or HTTPS URL (domain mode)
+
+options:
+  -h, --help            show this help message and exit
+  -u, --username USERNAME
+                        Username to search across social and tech platforms (Sherlock mode)
+  -t, --timeout TIMEOUT
+                        Operation deadline in seconds (default: 8.0)
+  -o, --output OUTPUT   Path to write JSON report output (default: stdout)
+  -s, --summary         Print a human-readable summary instead of raw JSON
 ```
 
-## Example output shape
+---
 
-```json
-{
-  "schema_version": 1,
-  "target": "example.com",
-  "dns": {"addresses": ["93.184.216.34"]},
-  "web": {
-    "status": 200,
-    "title": "Example Domain",
-    "meta": {"description": "Example description"},
-    "headers": {
-      "present": ["strict-transport-security"],
-      "missing": ["content-security-policy", "cross-origin-opener-policy"]
-    }
-  },
-  "tls": {
-    "protocol": "TLSv1.3",
-    "cipher": {"name": "TLS_AES_256_GCM_SHA384", "protocol": "TLSv1.3", "bits": 256},
-    "expires": "2026-10-01T00:00:00Z",
-    "days_remaining": 365,
-    "is_expired": false,
-    "sha256": "..."
-  },
-  "files": {
-    "security_txt": {"found": true, "contacts": ["mailto:security@example.com"]},
-    "robots_txt": {"found": true, "sitemaps": ["https://example.com/sitemap.xml"]}
-  }
-}
-```
+## Safety Properties
 
-The exact values depend on the target at collection time. Individual web/TLS failures are represented as structured `error` fields instead of fabricated data.
+- Rejects IP literals, custom ports, local names, and non-public-unicast DNS answers.
+- Pins outbound HTTP/TLS connections to prevalidated public IPv4 addresses only.
+- Limits each response body to 256 KiB; large payloads are safely truncated while preserving headers.
+- Bounds initial lookups with monotonic per-operation deadlines in daemon threads.
+- Strictly uses Python's standard library with zero third-party dependencies.
+
+---
 
 ## Tests
+
+Run the complete test suite (54 unit tests covering domain collectors, DNS parsers, CLI, and username search):
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-## Responsible use
+---
 
-Use this tool only for lawful research involving public internet resources. Follow applicable law, site terms, and organizational policies. Keep request volume low and obtain authorization before moving from passive collection to active security testing.
+## Responsible Use
+
+Use this tool only for lawful research involving public internet resources. Follow applicable laws, site terms of service, and organizational policies. Keep request volume low and obtain authorization before transitioning from passive reconnaissance to active security testing.
+
+---
+
+## Contributing
+
+Contributions, bug reports, and site additions are welcome! Please check [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE) © DrowLink
