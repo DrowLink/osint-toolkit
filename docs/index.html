@@ -61,6 +61,7 @@
           <li class="sidebar-nav-item"><a href="#platforms-directory">Platform Directory</a></li>
           <li class="sidebar-nav-item"><a href="#domain-recon">Domain Reconnaissance</a></li>
           <li class="sidebar-nav-item"><a href="#email-security">Email Security (SPF/DMARC)</a></li>
+          <li class="sidebar-nav-item"><a href="#intel-services">Threat & Intel Services</a></li>
           <li class="sidebar-nav-item"><a href="#output-formats">Output & Formatting</a></li>
         </ul>
       </div>
@@ -306,6 +307,65 @@ cd osint-toolkit
         </ul>
       </section>
 
+      <!-- Specialized Threat & Intel Services -->
+      <section id="intel-services">
+        <h2 id="intel-services-heading">Threat & Intel Services</h2>
+        <p>Specialized intelligence commands and pure Python methods for deep infrastructure profiling and malware reputation analysis:</p>
+
+        <h3>1. Shodan Host Intelligence (<code>search_shodan</code>)</h3>
+        <p>Query open ports, CPEs, hostnames, and known CVEs. By default, it queries <strong>Shodan InternetDB</strong> with zero authentication (no API key required), and supports full API keys via <code>SHODAN_API_KEY</code> or <code>--api-key</code>.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code># Query by IP (zero-auth InternetDB)
+./osint shodan 8.8.8.8
+
+# Query by domain (automatically resolves to public IP)
+./search_shodan github.com
+
+# Save to JSON
+./osint shodan 8.8.8.8 -o shodan.json</code></pre>
+        </div>
+
+        <h3>2. IP2Location Geolocation & Proxies (<code>search_ip2location</code>)</h3>
+        <p>Lookup accurate country, city, coordinates, timezone, ASN, autonomous system name, and residential vs. proxy/VPN detection. Operates on the public tier without an API key, or with <code>IP2LOCATION_API_KEY</code>.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code># Check geolocation and proxy status
+./osint ip2location 8.8.8.8
+./search_ip2location 1.1.1.1</code></pre>
+        </div>
+
+        <h3>3. VirusTotal Threat Analysis (<code>search_virustotal</code>)</h3>
+        <p>Queries VirusTotal v3 API for malware engine verdicts (harmless, malicious, suspicious) and reputation scoring across domains and IP addresses. Requires <code>VIRUSTOTAL_API_KEY</code>.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code># Check domain or IP reputation
+./osint virustotal google.com
+./search_virustotal 8.8.8.8 --api-key &lt;KEY&gt;</code></pre>
+        </div>
+
+        <h3>4. Censys Host Recon (<code>search_censys</code>)</h3>
+        <p>Inspects host services, protocols, ports, and autonomous systems via Censys Search API v2. Requires <code>CENSYS_API_ID</code> and <code>CENSYS_API_SECRET</code>.</p>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code># Check Censys indexed services
+./osint censys 8.8.8.8
+./search_censys 8.8.8.8 --api-id &lt;ID&gt; --api-secret &lt;SECRET&gt;</code></pre>
+        </div>
+      </section>
+
       <!-- Output & Options -->
       <section id="output-formats">
         <h2 id="output-heading">Output & Options</h2>
@@ -415,6 +475,7 @@ cd osint-toolkit
         <li class="toc-item"><a href="#username-heading">Username Hunter</a></li>
         <li class="toc-item"><a href="#platforms-directory">Platform Directory</a></li>
         <li class="toc-item"><a href="#domain-heading">Domain Recon</a></li>
+        <li class="toc-item"><a href="#intel-services-heading">Threat & Intel Services</a></li>
         <li class="toc-item"><a href="#output-heading">Output & Options</a></li>
         <li class="toc-item"><a href="#safety-heading">Safety & Limits</a></li>
         <li class="toc-item"><a href="#specs-heading">Documentation Policy</a></li>
