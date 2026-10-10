@@ -10,14 +10,27 @@ from typing import Any, TextIO
 
 from .collector import collect_report
 from .core import DomainValidationError
+from .username import UsernameValidationError, search_username
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="osint-toolkit",
-        description="Collect bounded, passive OSINT metadata for a public domain.",
+        description="Collect bounded, passive OSINT metadata for a public domain or search usernames across platforms.",
     )
-    parser.add_argument("target", help="Public domain or HTTPS URL")
+    parser.add_argument(
+        "target",
+        nargs="?",
+        default=None,
+        help="Public domain or HTTPS URL (domain mode)",
+    )
+    parser.add_argument(
+        "-u",
+        "--username",
+        type=str,
+        default=None,
+        help="Username to search across social and tech platforms (Sherlock mode)",
+    )
     parser.add_argument(
         "-t",
         "--timeout",
@@ -284,23 +297,95 @@ def format_summary(report: dict[str, Any], *, use_color: bool = True) -> str:
     return "\n".join(lines)
 
 
+def format_username_summary(report: dict[str, Any], *, use_color: bool = True) -> str:
+    """Format a username OSINT search report into a clean, human-readable terminal summary."""
+    def c(code: str, text: str) -> str:
+        if not use_color:
+            return text
+        return f"\033[{code}m{text}\033[0m"
+
+    lines: list[str] = []
+    target = report.get("target", "unknown")
+    total_checked = report.get("total_checked", 0)
+    found = report.get("found", [])
+    not_found = report.get("not_found", [])
+
+    lines.append(c("1;36", "┌" + "─" * 62 + "┐"))
+    lines.append(c("1;36", f"│  ⚡ OSINT USERNAME REPORT: @{target}".ljust(63) + "│"))
+    lines.append(c("90", f"│  Checked: {total_checked} platforms  •  Found: {len(found)}".ljust(63) + "│"))
+    lines.append(c("1;36", "└" + "─" * 62 + "┘"))
+    lines.append("")
+
+    if found:
+        lines.append(c("1;32", f"👤 [Profiles Found: {len(found)}]"))
+        by_cat: dict[str, list[dict[str, Any]]] = {}
+        for item in found:
+            cat = item.get("category", "General")
+            by_cat.setdefault(cat, []).append(item)
+
+        categories = list(by_cat.keys())
+        for cat_idx, cat in enumerate(categories):
+            is_last_cat = cat_idx == len(categories) - 1
+            cat_prefix = "└──" if is_last_cat else "├──"
+            lines.append(f"  {cat_prefix} [{c('1', cat)}]")
+            cat_items = by_cat[cat]
+            sub_indent = "      " if is_last_cat else "  │   "
+            for item_idx, item in enumerate(cat_items):
+                is_last_item = item_idx == len(cat_items) - 1
+                item_prefix = "└──" if is_last_item else "├──"
+                name_str = c("32", f"✔ {item['name']}:").ljust(22)
+                lines.append(f"{sub_indent}{item_prefix} {name_str} {item['url']}")
+        lines.append("")
+    else:
+        lines.append(c("33", "👤 [Profiles Found: 0]"))
+        lines.append(c("33", "  └── No active profiles found across verified platforms."))
+        lines.append("")
+
+    if not_found:
+        missing_names = [item["name"] for item in not_found]
+        lines.append(c("90", f"❌ [Not Found: {len(not_found)}]"))
+        preview = ", ".join(missing_names[:12])
+        suffix = f" (+{len(missing_names) - 12} more)" if len(missing_names) > 12 else ""
+        lines.append(c("90", f"  └── {preview}{suffix}"))
+        lines.append("")
+
+    lines.append(c("1;36", "└" + "─" * 62 + "┘"))
+    return "\n".join(lines)
+
+
 def main(
     argv: Sequence[str] | None = None,
     *,
     stdout: TextIO = sys.stdout,
     stderr: TextIO = sys.stderr,
     collector: Callable[..., dict[str, Any]] = collect_report,
+    username_collector: Callable[..., dict[str, Any]] = search_username,
 ) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
     if args.timeout <= 0:
         stderr.write("error: timeout must be positive\n")
         return 2
+
+    if not args.target and not args.username:
+        stderr.write("error: target domain or -u/--username must be provided\n")
+        return 2
+
+    is_username_mode = bool(args.username)
+    target_value = args.username if is_username_mode else args.target
+
     try:
-        try:
-            report = collector(args.target, timeout=args.timeout)
-        except TypeError:
-            report = collector(args.target)
-    except (DomainValidationError, OSError, ValueError) as exc:
+        if is_username_mode:
+            try:
+                report = username_collector(target_value, timeout=args.timeout)
+            except TypeError:
+                report = username_collector(target_value)
+        else:
+            try:
+                report = collector(target_value, timeout=args.timeout)
+            except TypeError:
+                report = collector(target_value)
+    except (DomainValidationError, UsernameValidationError, OSError, ValueError) as exc:
         stderr.write(f"error: {exc}\n")
         return 2
 
@@ -320,7 +405,10 @@ def main(
         use_color = (
             is_tty and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb"
         )
-        stdout.write(format_summary(report, use_color=use_color))
+        if is_username_mode:
+            stdout.write(format_username_summary(report, use_color=use_color))
+        else:
+            stdout.write(format_summary(report, use_color=use_color))
         stdout.write("\n")
     elif not args.output:
         json.dump(report, stdout, indent=2, sort_keys=True)
