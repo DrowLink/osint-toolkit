@@ -52,8 +52,8 @@
 
 | Method | Command | Notes |
 | :--- | :--- | :--- |
-| **Direct Run** *(No install)* | `python3 -m osint_toolkit <target>` | Works immediately on any system with Python 3.11+ |
-| **Local Virtualenv** | `pip install .` | Installs `osint-toolkit` as a global executable command |
+| **Direct Run** *(No install)* | `./osint <target>` or `python3 -m osint_toolkit <target>` | Works immediately on any system with Python 3.11+ |
+| **CLI Command** | `pip install .` | Installs global `osint` & `osint-toolkit` command |
 | **Docker** | `docker run -it --rm osint-toolkit <target>` | Portable container execution |
 
 ```bash
@@ -61,42 +61,47 @@
 git clone https://github.com/DrowLink/osint-toolkit.git
 cd osint-toolkit
 
-# Run directly
-python3 -m osint_toolkit --help
+# Run directly without flags!
+./osint torvalds
 ```
 
 ---
 
 ## General Usage
 
-### 1. Domain Reconnaissance Mode
+`osint-toolkit` automatically detects whether your target is a **username** or a **domain**, and defaults to a clean, formatted terminal UI:
 
-Investigate a public domain's complete infrastructure, mail security, certificates, and policies:
+### 1. Username Hunting Mode (Sherlock Style)
+
+Just pass any username or `@handle`. It searches concurrently across 20+ public platforms:
 
 ```bash
-# Display formatted terminal summary
-python3 -m osint_toolkit google.com -s
+# Search a username (auto-detected)
+./osint torvalds
 
-# Output raw structured JSON
-python3 -m osint_toolkit google.com
+# Or using python module
+python3 -m osint_toolkit torvalds
 
-# Save report directly to a file
-python3 -m osint_toolkit google.com -o google.json
+# Save findings to a JSON file while viewing terminal output
+./osint torvalds -o torvalds.json
 
-# Display summary while saving full JSON report
-python3 -m osint_toolkit google.com -s -o google.json
+# Output pure JSON (for scripting / piping)
+./osint torvalds -j
 ```
 
-### 2. Username Hunting Mode (Sherlock Mode)
+### 2. Domain Reconnaissance Mode
 
-Search a username concurrently across 20+ social, tech, and developer platforms:
+Pass any domain name to analyze DNS, email security, WHOIS/RDAP, certificates, and headers:
 
 ```bash
-# Search a username with terminal tree summary
-python3 -m osint_toolkit -u torvalds -s
+# Analyze domain infrastructure (auto-detected)
+./osint github.com
 
-# Save found accounts to a JSON report
-python3 -m osint_toolkit -u torvalds -o torvalds.json
+# Save complete JSON audit to file
+./osint github.com -o github.json
+
+# Output pure JSON
+./osint github.com -j
 ```
 
 ---
@@ -125,22 +130,23 @@ python3 -m osint_toolkit -u torvalds -o torvalds.json
 ## CLI Options
 
 ```console
-$ python3 -m osint_toolkit --help
-usage: osint-toolkit [-h] [-u USERNAME] [-t TIMEOUT] [-o OUTPUT] [-s] [target]
+$ ./osint --help
+usage: osint-toolkit [-h] [-u USERNAME] [-d DOMAIN] [-t TIMEOUT] [-o OUTPUT]
+                     [-j] [-s] [target]
 
-Collect bounded, passive OSINT metadata for a public domain or search usernames across platforms.
+Fast, dependency-free OSINT toolkit for domains and usernames.
 
 positional arguments:
-  target                Public domain or HTTPS URL (domain mode)
+  target                Target domain (e.g. google.com) or username (e.g. drowlink)
 
 options:
-  -h, --help            show this help message and exit
-  -u, --username USERNAME
-                        Username to search across social and tech platforms (Sherlock mode)
-  -t, --timeout TIMEOUT
-                        Operation deadline in seconds (default: 8.0)
-  -o, --output OUTPUT   Path to write JSON report output (default: stdout)
-  -s, --summary         Print a human-readable summary instead of raw JSON
+  -h, --help            Show this help message and exit
+  -u, --username USER   Explicitly search username across public platforms
+  -d, --domain DOMAIN   Explicitly analyze domain infrastructure
+  -t, --timeout SECS    Operation deadline in seconds (default: 8.0)
+  -o, --output FILE     Path to write JSON report output (default: stdout)
+  -j, --json            Output raw JSON instead of human-readable summary
+  -s, --summary         Display human-readable summary card (default in terminal)
 ```
 
 ---
