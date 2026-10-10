@@ -54,3 +54,31 @@
   - Anti-spoofing analysis: SPF syntax & enforcement evaluation, DMARC tags & policy strength (`reject`, `quarantine`, `none`), MX provider classification.
   - WHOIS events via ICANN RDAP protocols.
   - TLS certificate inspection via native `ssl.SSLContext`.
+
+---
+
+## 4. Specialized Intelligence Services Specification
+
+The toolkit provides dedicated methods and separate standalone commands for external threat & infrastructure intelligence:
+
+1. **`search_shodan` / `osint shodan` / `search-shodan`**:
+   - Primary: Uses Shodan InternetDB (`https://internetdb.shodan.io/{ip}`) for zero-authentication, instant queries returning open ports, CPEs, hostnames, tags, and known CVEs.
+   - Enhanced: Accepts `SHODAN_API_KEY` (or `--api-key`) for full authenticated host queries.
+   - Automatic domain resolution: If a domain target is passed, it is safely resolved to its public IPv4 address before querying.
+
+2. **`search_ip2location` / `osint ip2location` / `search-ip2location`**:
+   - Geolocation & Proxy Engine (`https://api.ip2location.io/?ip={ip}`).
+   - Returns country, city, coordinates, timezone, ASN, ISP organization, and proxy/VPN detection.
+   - Works on the free public tier without an API key or with `IP2LOCATION_API_KEY`.
+
+3. **`search_virustotal` / `osint virustotal` / `search-virustotal`**:
+   - Threat Analysis Engine (`https://www.virustotal.com/api/v3/`).
+   - Supports both domain and IP targets.
+   - Requires `VIRUSTOTAL_API_KEY` or `--api-key`. Unauthenticated calls return guided configuration instructions and the direct public web report link.
+   - Reports engine verdict counts (harmless, malicious, suspicious) and reputation score.
+
+4. **`search_censys` / `osint censys` / `search-censys`**:
+   - Host Infrastructure Engine (`https://search.censys.io/api/v2/hosts/{ip}`).
+   - Requires `CENSYS_API_ID` and `CENSYS_API_SECRET` credentials. Unauthenticated calls return guided setup instructions and web search portal link.
+   - Reports open services, transport protocols, autonomous system, and geolocation.
+

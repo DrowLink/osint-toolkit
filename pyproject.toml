@@ -22,6 +22,15 @@ dependencies = []
 [project.scripts]
 osint-toolkit = "osint_toolkit.cli:main"
 osint = "osint_toolkit.cli:main"
+osint-shodan = "osint_toolkit.cli:main_shodan"
+search-shodan = "osint_toolkit.cli:main_shodan"
+osint-virustotal = "osint_toolkit.cli:main_virustotal"
+search-virustotal = "osint_toolkit.cli:main_virustotal"
+osint-ip2location = "osint_toolkit.cli:main_ip2location"
+search-ip2location = "osint_toolkit.cli:main_ip2location"
+osint-censys = "osint_toolkit.cli:main_censys"
+search-censys = "osint_toolkit.cli:main_censys"
+
 
 [project.urls]
 Homepage = "https://github.com/DrowLink/osint-toolkit"

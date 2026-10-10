@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+"""Direct executable wrapper for Censys search."""
+import sys
+from osint_toolkit.cli import main_censys
+
+if __name__ == "__main__":
+    raise SystemExit(main_censys())

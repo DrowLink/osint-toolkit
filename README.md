@@ -31,7 +31,7 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"/>
   <img src="https://img.shields.io/badge/dependencies-zero-brightgreen.svg" alt="Zero Dependencies"/>
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"/>
-  <img src="https://img.shields.io/badge/tests-54%20passing-success.svg" alt="Tests 54 passing"/>
+  <img src="https://img.shields.io/badge/tests-67%20passing-success.svg" alt="Tests 67 passing"/>
 </p>
 
 <p align="center">
@@ -46,7 +46,7 @@
 - 🛡️ **Strictly Passive & Bounded**: No port scans, no brute forcing, and no invasive probing.
 - 🚀 **High Concurrency**: Multi-threaded execution inspects dozens of platforms and records in seconds.
 - 🖥️ **Modern Terminal UI**: Sleek UTF-8 tree hierarchy formatting with colors and status badges.
-- 📁 **Dual Output**: Terminal summary cards (`-s`) or reproducible, structured JSON exports (`-o`).
+- 📁 **Dual Output**: Terminal summary cards or reproducible, structured JSON exports (`-o`).
 
 ---
 
@@ -55,7 +55,7 @@
 | Method | Command | Notes |
 | :--- | :--- | :--- |
 | **Direct Run** *(No install)* | `./osint <target>` or `python3 -m osint_toolkit <target>` | Works immediately on any system with Python 3.11+ |
-| **CLI Command** | `pip install .` | Installs global `osint` & `osint-toolkit` command |
+| **CLI Command** | `pip install .` | Installs global `osint`, `search-shodan`, `search-virustotal`, etc. |
 | **Docker** | `docker run -it --rm osint-toolkit <target>` | Portable container execution |
 
 ```bash
@@ -104,6 +104,52 @@ Pass any domain name to analyze DNS, email security, WHOIS/RDAP, certificates, a
 
 # Output pure JSON
 ./osint github.com -j
+```
+
+### 3. Specialized Threat & Intel Services
+
+Run standalone commands or subcommands for deep external intelligence:
+
+```bash
+# Shodan (zero-auth via InternetDB, or SHODAN_API_KEY)
+./osint shodan 8.8.8.8
+./search_shodan github.com
+
+# IP2Location (zero-auth public tier, or IP2LOCATION_API_KEY)
+./osint ip2location 8.8.8.8
+./search_ip2location 1.1.1.1
+
+# VirusTotal (with VIRUSTOTAL_API_KEY or guided unauthenticated mode)
+./osint virustotal google.com
+./search_virustotal 8.8.8.8
+
+# Censys (with CENSYS_API_ID / CENSYS_API_SECRET)
+./osint censys 8.8.8.8
+./search_censys google.com
+```
+
+### 4. Python Library Usage
+
+All engines are directly importable as pure Python functions:
+
+```python
+from osint_toolkit import (
+    search_username,
+    collect_report,
+    search_shodan,
+    search_ip2location,
+    search_virustotal,
+    search_censys,
+)
+
+# Search usernames
+profiles = search_username("torvalds")
+
+# Shodan host intelligence
+shodan_info = search_shodan("8.8.8.8")
+
+# Geolocation & ASN
+geo = search_ip2location("8.8.8.8")
 ```
 
 ---
