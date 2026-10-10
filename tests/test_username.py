@@ -127,6 +127,38 @@ class SearchUsernameTests(unittest.TestCase):
         self.assertEqual(report["found"][0]["name"], "SiteA")
         self.assertEqual(report["not_found"][0]["name"], "SiteB")
 
+    def test_search_username_with_proxy(self):
+        recorded_proxies = []
+
+        def proxy_checker(site, username, timeout=6.0, proxy=None):
+            recorded_proxies.append(proxy)
+            return {
+                "name": site["name"],
+                "category": site["category"],
+                "url": site["url"].format(username=username),
+                "exists": True,
+                "status": 200,
+            }
+
+        mock_sites = [{"name": "SiteX", "category": "Tech", "url": "https://sitex.com/{username}", "type": "status_code"}]
+        report = search_username("alice", sites=mock_sites, checker=proxy_checker, proxy="http://127.0.0.1:8080")
+
+        self.assertEqual(report["proxy_used"], "http://127.0.0.1:8080")
+        self.assertEqual(recorded_proxies, ["http://127.0.0.1:8080"])
+
+    def test_sites_registry_has_over_50_verified_platforms(self):
+        from osint_toolkit.username import SITES
+
+        self.assertGreaterEqual(len(SITES), 50)
+        names = set()
+        for site in SITES:
+            self.assertIn("name", site)
+            self.assertIn("category", site)
+            self.assertIn("url", site)
+            self.assertIn("type", site)
+            self.assertNotIn(site["name"], names, f"Duplicate platform: {site['name']}")
+            names.add(site["name"])
+
 
 if __name__ == "__main__":
     unittest.main()

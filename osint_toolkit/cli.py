@@ -108,6 +108,77 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 
+def format_csv_report(report: dict[str, Any]) -> str:
+    """Format an OSINT report into standard RFC 4180 CSV rows."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    mode = report.get("mode")
+    service = report.get("service")
+    target = report.get("target", "")
+
+    if mode == "username":
+        writer.writerow(["target", "platform", "category", "exists", "status", "url"])
+        for item in report.get("found", []):
+            writer.writerow([
+                target,
+                item.get("name", ""),
+                item.get("category", ""),
+                "True",
+                item.get("status", ""),
+                item.get("url", ""),
+            ])
+        for item in report.get("not_found", []):
+            writer.writerow([
+                target,
+                item.get("name", ""),
+                item.get("category", ""),
+                "False",
+                item.get("status", ""),
+                item.get("url", ""),
+            ])
+    elif service:
+        writer.writerow(["service", "target", "key", "value"])
+        for k, v in sorted(report.items()):
+            if k in {"raw"}:
+                continue
+            val_str = json.dumps(v) if isinstance(v, (dict, list)) else str(v)
+            writer.writerow([service, target, k, val_str])
+    else:
+        domain = report.get("domain", target)
+        writer.writerow(["target", "section", "key", "value"])
+        # DNS
+        dns = report.get("dns", {})
+        for rtype, records in sorted(dns.items()):
+            if isinstance(records, list):
+                for rec in records:
+                    writer.writerow([domain, "dns", rtype, str(rec)])
+            else:
+                writer.writerow([domain, "dns", rtype, str(records)])
+        # Security headers
+        headers = report.get("security_headers", {})
+        for h, val in sorted(headers.items()):
+            writer.writerow([domain, "security_headers", h, str(val)])
+        # TLS
+        tls = report.get("tls", {})
+        for k, v in sorted(tls.items()):
+            writer.writerow([domain, "tls", k, str(v)])
+        # HTTP
+        http_data = report.get("http", {})
+        for k, v in sorted(http_data.items()):
+            if k not in {"body", "headers"}:
+                writer.writerow([domain, "http", k, str(v)])
+        # RDAP / Whois
+        rdap = report.get("rdap", {})
+        for k, v in sorted(rdap.items()):
+            writer.writerow([domain, "rdap", k, str(v)])
+        # Subdomains
+        for sub in report.get("subdomains", []):
+            writer.writerow([domain, "subdomains", "name", str(sub)])
+
+    return output.getvalue()
+
+
 def format_summary(report: dict[str, Any], *, use_color: bool = True) -> str:
     """Format an OSINT report into a clean, human-readable terminal summary."""
     def c(code: str, text: str) -> str:
@@ -608,7 +679,9 @@ def _run_service_cli(
     )
     parser.add_argument("target", help="Target domain (e.g. google.com) or IP address (e.g. 8.8.8.8)")
     parser.add_argument("-t", "--timeout", type=float, default=8.0, help="Operation timeout in seconds")
-    parser.add_argument("-o", "--output", type=str, default=None, help="File path to save JSON report")
+    parser.add_argument("-p", "--proxy", type=str, default=None, help="Proxy URL (e.g. http://127.0.0.1:8080)")
+    parser.add_argument("--csv", action="store_true", help="Output report in standard CSV format")
+    parser.add_argument("-o", "--output", type=str, default=None, help="File path to save JSON or CSV report")
     parser.add_argument("-j", "--json", action="store_true", help="Output raw JSON instead of formatted card")
     parser.add_argument("-s", "--summary", action="store_true", help="Display formatted summary card")
     parser.add_argument("--ai", "--ollama", action="store_true", help="Synthesize report with local AI (Ollama)")
@@ -624,6 +697,8 @@ def _run_service_cli(
         return 2
 
     kwargs: dict[str, Any] = {"timeout": args.timeout}
+    if getattr(args, "proxy", None):
+        kwargs["proxy"] = args.proxy
     if hasattr(args, "api_key") and args.api_key:
         kwargs["api_key"] = args.api_key
     if hasattr(args, "api_id") and args.api_id:
@@ -632,7 +707,11 @@ def _run_service_cli(
         kwargs["api_secret"] = args.api_secret
 
     try:
-        report = runner(args.target, **kwargs)
+        try:
+            report = runner(args.target, **kwargs)
+        except TypeError:
+            kwargs.pop("proxy", None)
+            report = runner(args.target, **kwargs)
     except Exception as exc:
         stderr.write(f"error: {exc}\n")
         return 2
@@ -647,17 +726,22 @@ def _run_service_cli(
         if args.output or args.json:
             report["ai_briefing"] = ai_result
 
+    is_csv = getattr(args, "csv", False) or (args.output and args.output.lower().endswith(".csv"))
+
     if args.output:
         try:
             with open(args.output, "w", encoding="utf-8") as file:
-                json.dump(report, file, indent=2, sort_keys=True)
-                file.write("\n")
+                if is_csv:
+                    file.write(format_csv_report(report))
+                else:
+                    json.dump(report, file, indent=2, sort_keys=True)
+                    file.write("\n")
         except OSError as exc:
             stderr.write(f"error: failed to write output file: {exc}\n")
             return 2
 
     is_tty = hasattr(stdout, "isatty") and stdout.isatty()
-    show_summary = args.summary or (is_tty and not args.json)
+    show_summary = args.summary or (is_tty and not args.json and not getattr(args, "csv", False))
 
     if show_summary:
         import os
@@ -668,6 +752,8 @@ def _run_service_cli(
             stdout.write("\n")
             stdout.write(format_ai_briefing_card(ai_result, use_color=use_color))
             stdout.write("\n")
+    elif is_csv and not args.output:
+        stdout.write(format_csv_report(report))
     elif not args.output or args.json:
         json.dump(report, stdout, indent=2, sort_keys=True)
         stdout.write("\n")
@@ -762,14 +848,20 @@ def main(
     try:
         if is_username_mode:
             try:
-                report = username_collector(target_value, timeout=args.timeout)
+                report = username_collector(target_value, timeout=args.timeout, proxy=args.proxy)
             except TypeError:
-                report = username_collector(target_value)
+                try:
+                    report = username_collector(target_value, timeout=args.timeout)
+                except TypeError:
+                    report = username_collector(target_value)
         else:
             try:
-                report = collector(target_value, timeout=args.timeout)
+                report = collector(target_value, timeout=args.timeout, proxy=args.proxy)
             except TypeError:
-                report = collector(target_value)
+                try:
+                    report = collector(target_value, timeout=args.timeout)
+                except TypeError:
+                    report = collector(target_value)
     except (DomainValidationError, UsernameValidationError, OSError, ValueError) as exc:
         stderr.write(f"error: {exc}\n")
         return 2
@@ -784,17 +876,22 @@ def main(
         if args.output or args.json:
             report["ai_briefing"] = ai_result
 
+    is_csv = getattr(args, "csv", False) or (args.output and args.output.lower().endswith(".csv"))
+
     if args.output:
         try:
             with open(args.output, "w", encoding="utf-8") as file:
-                json.dump(report, file, indent=2, sort_keys=True)
-                file.write("\n")
+                if is_csv:
+                    file.write(format_csv_report(report))
+                else:
+                    json.dump(report, file, indent=2, sort_keys=True)
+                    file.write("\n")
         except OSError as exc:
             stderr.write(f"error: failed to write output file: {exc}\n")
             return 2
 
     is_tty = hasattr(stdout, "isatty") and stdout.isatty()
-    show_summary = args.summary or (is_tty and not args.json)
+    show_summary = args.summary or (is_tty and not args.json and not getattr(args, "csv", False))
 
     if show_summary:
         import os
@@ -811,6 +908,8 @@ def main(
             stdout.write("\n")
             stdout.write(format_ai_briefing_card(ai_result, use_color=use_color))
             stdout.write("\n")
+    elif is_csv and not args.output:
+        stdout.write(format_csv_report(report))
     elif not args.output or args.json:
         json.dump(report, stdout, indent=2, sort_keys=True)
         stdout.write("\n")

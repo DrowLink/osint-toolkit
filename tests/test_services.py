@@ -203,3 +203,30 @@ class ServiceCliTests(unittest.TestCase):
         code = main(["censys", "8.8.8.8", "-s"], stdout=output, stderr=error)
         self.assertEqual(code, 0)
         self.assertIn("CENSYS INTELLIGENCE", output.getvalue())
+
+    @patch("osint_toolkit.services._http_get_json")
+    def test_search_shodan_with_proxy(self, mock_get):
+        mock_get.return_value = (200, {"ports": [80], "vulns": []}, None)
+        res = search_shodan("8.8.8.8", proxy="http://127.0.0.1:8080")
+        self.assertEqual(res["proxy_used"], "http://127.0.0.1:8080")
+        mock_get.assert_called_with("https://internetdb.shodan.io/8.8.8.8", timeout=8.0, proxy="http://127.0.0.1:8080")
+
+    @patch("osint_toolkit.cli.search_shodan")
+    def test_main_shodan_csv_mode(self, mock_shodan):
+        mock_shodan.return_value = {
+            "service": "shodan",
+            "target": "8.8.8.8",
+            "ip": "8.8.8.8",
+            "found": True,
+            "ports": [53, 443],
+        }
+        output = io.StringIO()
+        error = io.StringIO()
+        code = main_shodan(["8.8.8.8", "--csv"], stdout=output, stderr=error)
+        self.assertEqual(code, 0)
+        self.assertIn("service,target,key,value", output.getvalue())
+        self.assertIn("shodan,8.8.8.8", output.getvalue())
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -44,9 +44,15 @@
 
 ## 3. Supported Platforms & Detectors Specification
 
-- **Username Hunter Engine**:
-  - Platforms must specify detection strategy (`status_code`, `message_present`, or `message_absent`).
-  - False positive mitigation (such as Wikipedia sockpuppet detection or reserved namespace filters) must be codified directly in detector rules.
+- **Username Hunter Engine (56 Curated Platforms)**:
+  - Curated platform registry verified against false positives and bot hurdles across 5 distinct categories:
+    1. **Coding & Tech (17)**: GitHub, GitLab, Codeberg, Bitbucket, Docker Hub, PyPI, npm, Crates.io, Dev.to, Hashnode, Keybase, HackerNews, Kaggle, LeetCode, TryHackMe, Replit, Pastebin.
+    2. **Social & Messaging (13)**: Telegram, Reddit, Mastodon, Bluesky, Disqus, Linktree, Gravatar, Pinterest, BuyMeACoffee, Ko-fi, ProductHunt, About.me, Quora.
+    3. **Gaming & Entertainment (9)**: Steam, Chess.com, Lichess, itch.io, Roblox, Speedrun.com, osu!, Letterboxd, Chessgames.
+    4. **Design & Audio (10)**: SoundCloud, Spotify, Bandcamp, Behance, Dribbble, Flickr, 500px, DeviantArt, Unsplash, Mixcloud.
+    5. **Publishing & Knowledge (7)**: Substack, Medium, Wikipedia, Instructables, Goodreads, Duolingo, Patreon.
+  - Platforms specify detection strategy (`status_code`, `message_present`, or `message_absent`).
+  - False positive mitigation (such as Wikipedia sockpuppet detection or reserved namespace filters) is codified directly in detector rules.
   - Search concurrency uses bounded thread pools (`max_workers=20`) with per-request timeouts.
 
 - **Domain Reconnaissance Engine**:
@@ -95,5 +101,30 @@ The toolkit provides dedicated methods and separate standalone commands for exte
    - Method: `generate_ai_briefing(report, model=None, endpoint=None, timeout=40.0)`.
    - Functionality: Takes collected metadata from username hunting, domain recon, or threat scans and generates an executive cyber posture / risk summary using a local LLM (e.g., `llama3`, `mistral`, `phi3`, `qwen2.5`).
    - Resiliency: If Ollama is offline or unreachable, the toolkit reports a friendly, non-fatal message without failing the CLI process.
+
+---
+
+## 6. OpSec & Proxy Anonymity Specification
+
+1. **Proxy Support Architecture**:
+   - Flag: `-p <URL>` / `--proxy <URL>` (e.g., `http://127.0.0.1:8080`, `http://user:pass@proxy.corp:3128`).
+   - Standard Library Implementation: Implemented with `urllib.request.ProxyHandler({"http": proxy, "https": proxy})` and `urllib.request.build_opener()`.
+   - Engine Propagation: Proxy configuration seamlessly propagates through username hunting thread workers, Shodan InternetDB queries, IP2Location queries, VirusTotal lookups, and Censys queries.
+   - Result Auditing: The resulting report includes `"proxy_used": "<URL>"` metadata confirming routing for chain-of-custody and evidence logging.
+
+---
+
+## 7. Structured Export Formats Specification (JSON & CSV)
+
+1. **JSON Output**:
+   - Flag: `-j` / `--json` or `-o <path.json>`.
+   - Standard: Indented, key-sorted RFC 8259 JSON structure suitable for SIEM, jq pipelines, and automated ingestion.
+
+2. **CSV Output**:
+   - Flag: `--csv` or `-o <path.csv>`.
+   - Standard: Strict RFC 4180 format generated via Python's standard `csv` library.
+   - Username schema: `target,platform,category,exists,status,url`.
+   - Domain schema: `target,section,key,value`.
+   - Intelligence services schema: `service,target,key,value`.
 
 

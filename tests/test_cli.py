@@ -212,6 +212,71 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 2)
         self.assertIn("error:", error.getvalue())
 
+    def test_cli_proxy_flag_passed_to_username_collector(self):
+        captured_kwargs = {}
+
+        def mock_user_collector(target, **kwargs):
+            captured_kwargs.update(kwargs)
+            return {"mode": "username", "target": target, "found": [], "not_found": []}
+
+        output = io.StringIO()
+        error = io.StringIO()
+        exit_code = main(
+            ["-u", "alice", "--proxy", "http://127.0.0.1:9050", "-j"],
+            stdout=output,
+            stderr=error,
+            username_collector=mock_user_collector,
+        )
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(captured_kwargs.get("proxy"), "http://127.0.0.1:9050")
+
+    def test_cli_csv_flag_outputs_csv(self):
+        fake_user_report = {
+            "mode": "username",
+            "target": "alice",
+            "found": [{"name": "GitHub", "category": "Coding & Tech", "status": 200, "url": "https://github.com/alice"}],
+            "not_found": [{"name": "Keybase", "category": "Coding & Tech", "status": 404, "url": "https://keybase.io/alice"}],
+        }
+
+        output = io.StringIO()
+        error = io.StringIO()
+        exit_code = main(
+            ["-u", "alice", "--csv"],
+            stdout=output,
+            stderr=error,
+            username_collector=lambda _u, **_kw: fake_user_report,
+        )
+        self.assertEqual(exit_code, 0)
+        csv_text = output.getvalue()
+        self.assertIn("target,platform,category,exists,status,url", csv_text)
+        self.assertIn("alice,GitHub,Coding & Tech,True,200,https://github.com/alice", csv_text)
+        self.assertIn("alice,Keybase,Coding & Tech,False,404,https://keybase.io/alice", csv_text)
+
+    def test_cli_csv_file_output(self):
+        import tempfile
+        import pathlib
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_path = pathlib.Path(temp_dir) / "results.csv"
+            fake_domain_report = {
+                "domain": "example.com",
+                "dns": {"A": ["93.184.216.34"]},
+            }
+
+            output = io.StringIO()
+            error = io.StringIO()
+            exit_code = main(
+                ["example.com", "-o", str(file_path)],
+                stdout=output,
+                stderr=error,
+                collector=lambda _t, **_kw: fake_domain_report,
+            )
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(file_path.exists())
+            content = file_path.read_text(encoding="utf-8")
+            self.assertIn("target,section,key,value", content)
+            self.assertIn("example.com,dns,A,93.184.216.34", content)
+
 
 if __name__ == "__main__":
     unittest.main()
