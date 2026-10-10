@@ -160,7 +160,8 @@ SITES: list[dict[str, Any]] = [
         "name": "Wikipedia",
         "category": "Knowledge",
         "url": "https://en.wikipedia.org/wiki/User:{username}",
-        "type": "status_code",
+        "type": "message",
+        "absent_pattern": ("sockpuppet", "blocked indefinitely", "has been blocked"),
     },
     {
         "name": "Instructables",
@@ -245,9 +246,15 @@ def check_site(
             absent = site.get("absent_pattern")
             present = site.get("present_pattern")
             if absent:
-                exists = absent.lower() not in body.lower()
+                if isinstance(absent, (list, tuple)):
+                    exists = not any(p.lower() in body.lower() for p in absent)
+                else:
+                    exists = absent.lower() not in body.lower()
             elif present:
-                exists = present.lower() in body.lower()
+                if isinstance(present, (list, tuple)):
+                    exists = any(p.lower() in body.lower() for p in present)
+                else:
+                    exists = present.lower() in body.lower()
 
     return {
         "name": name,
