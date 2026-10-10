@@ -69,6 +69,20 @@ Or customize the deadline timeout (e.g. 5 seconds):
 python3 -m osint_toolkit example.com -t 5.0
 ```
 
+### Search usernames across platforms (Sherlock mode)
+
+Search a username concurrently across 20+ social, tech, and developer platforms:
+
+```bash
+python3 -m osint_toolkit -u torvalds -s
+```
+
+Save username results to a JSON file:
+
+```bash
+python3 -m osint_toolkit -u torvalds -o torvalds.json
+```
+
 ## Install locally
 
 ```bash

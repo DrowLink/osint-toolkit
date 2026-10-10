@@ -156,6 +156,62 @@ class CliTests(unittest.TestCase):
             self.assertEqual(json.loads(file_path.read_text(encoding="utf-8")), fake_report)
             self.assertIn("OSINT REPORT: example.com", output.getvalue())
 
+    def test_username_search_json_mode(self):
+        output = io.StringIO()
+        error = io.StringIO()
+        fake_user_report = {
+            "mode": "username",
+            "target": "johndoe",
+            "total_checked": 10,
+            "found_count": 1,
+            "found": [{"name": "GitHub", "url": "https://github.com/johndoe", "category": "Coding"}],
+            "not_found": [],
+        }
+
+        exit_code = main(
+            ["-u", "johndoe"],
+            stdout=output,
+            stderr=error,
+            username_collector=lambda _u, **_kw: fake_user_report,
+        )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(json.loads(output.getvalue()), fake_user_report)
+        self.assertEqual(error.getvalue(), "")
+
+    def test_username_search_summary_mode(self):
+        output = io.StringIO()
+        error = io.StringIO()
+        fake_user_report = {
+            "mode": "username",
+            "target": "johndoe",
+            "total_checked": 2,
+            "found_count": 1,
+            "found": [{"name": "GitHub", "url": "https://github.com/johndoe", "category": "Coding & Tech"}],
+            "not_found": [{"name": "FakeSite", "category": "Other"}],
+        }
+
+        exit_code = main(
+            ["--username", "johndoe", "--summary"],
+            stdout=output,
+            stderr=error,
+            username_collector=lambda _u, **_kw: fake_user_report,
+        )
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("OSINT USERNAME REPORT: @johndoe", output.getvalue())
+        self.assertIn("GitHub:", output.getvalue())
+        self.assertIn("https://github.com/johndoe", output.getvalue())
+        self.assertEqual(error.getvalue(), "")
+
+    def test_missing_both_target_and_username_returns_error(self):
+        output = io.StringIO()
+        error = io.StringIO()
+
+        exit_code = main([], stdout=output, stderr=error)
+        self.assertEqual(exit_code, 2)
+        self.assertIn("error:", error.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
