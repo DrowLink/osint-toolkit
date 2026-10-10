@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OSINT Toolkit Documentation — Passive Domain & Username Recon</title>
+  <meta name="description" content="Fast, dependency-free OSINT toolkit for domains and usernames. 100% Python Standard Library.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239563ff'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+</head>
+<body>
+
+  <!-- Sticky Navbar -->
+  <header class="navbar">
+    <a href="#" class="nav-brand">
+      <div class="logo-icon">⚡</div>
+      <span class="brand-title">osint-toolkit</span>
+      <span class="version-badge">v0.1.0</span>
+    </a>
+
+    <div class="nav-center">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="doc-search" placeholder="Search documentation or platforms...">
+        <span class="search-kbd">⌘K</span>
+      </div>
+    </div>
+
+    <div class="nav-links">
+      <a href="#quickstart" class="nav-link">Quickstart</a>
+      <a href="#username-hunting" class="nav-link">Sherlock Mode</a>
+      <a href="#domain-recon" class="nav-link">Domain Recon</a>
+      <a href="#specs-policy" class="nav-link">Specs</a>
+      <a href="https://github.com/DrowLink/osint-toolkit" target="_blank" rel="noopener" class="btn-github">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        GitHub
+      </a>
+      <button class="mobile-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+  </header>
+
+  <div class="layout-container">
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="nav-group">
+        <div class="nav-group-title">Getting Started</div>
+        <ul class="sidebar-nav-list">
+          <li class="sidebar-nav-item active"><a href="#introduction">Overview</a></li>
+          <li class="sidebar-nav-item"><a href="#installation">Installation</a></li>
+          <li class="sidebar-nav-item"><a href="#quickstart">Quickstart</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Core Engines</div>
+        <ul class="sidebar-nav-list">
+          <li class="sidebar-nav-item"><a href="#username-hunting">Username Hunter (Sherlock)</a></li>
+          <li class="sidebar-nav-item"><a href="#platforms-directory">Platform Directory</a></li>
+          <li class="sidebar-nav-item"><a href="#domain-recon">Domain Reconnaissance</a></li>
+          <li class="sidebar-nav-item"><a href="#email-security">Email Security (SPF/DMARC)</a></li>
+          <li class="sidebar-nav-item"><a href="#output-formats">Output & Formatting</a></li>
+        </ul>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-title">Reference</div>
+        <ul class="sidebar-nav-list">
+          <li class="sidebar-nav-item"><a href="#cli-options">CLI Options</a></li>
+          <li class="sidebar-nav-item"><a href="#safety-guardrails">Safety & Resource Limits</a></li>
+          <li class="sidebar-nav-item"><a href="#specs-policy">Documentation Policy (Specs)</a></li>
+          <li class="sidebar-nav-item"><a href="#testing">Testing & Verification</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content-area">
+
+      <!-- Hero Section -->
+      <section id="introduction">
+        <div class="hero-badge">⚡ 100% Python Standard Library • Zero Dependencies</div>
+        <h1 class="hero-title">
+          Fast, Bounded OSINT <br>
+          <span class="gradient-text">for Domains & Usernames.</span>
+        </h1>
+        <p class="hero-desc">
+          Hunt down social accounts across 23+ networks concurrently, and audit public domain infrastructure (DNS, MX, SPF, DMARC, WHOIS, TLS, and security headers) in seconds.
+        </p>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="card-icon">👤</div>
+            <div class="card-title">Sherlock-Style Engine</div>
+            <div class="card-desc">Concurrently probes 23+ platforms in under 3 seconds with built-in sockpuppet and false-positive filtering.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">✉️</div>
+            <div class="card-title">Anti-Spoofing & MX</div>
+            <div class="card-desc">Evaluates SPF mechanisms, DMARC enforcement policies, and automatically identifies email providers.</div>
+          </div>
+          <div class="feature-card">
+            <div class="card-icon">🛡️</div>
+            <div class="card-title">Zero Pip Dependencies</div>
+            <div class="card-desc">Runs entirely on Python 3.11+ built-in modules. No bloat, no supply chain vulnerabilities.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Installation -->
+      <section id="installation">
+        <h2 id="installation-heading">Installation</h2>
+        <p>Choose the installation method that fits your workflow. Because <code>osint-toolkit</code> has zero external dependencies, it works out-of-the-box on macOS, Linux, and Windows.</p>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Command</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Direct Run</strong></td>
+                <td><code>./osint &lt;target&gt;</code></td>
+                <td>Instant execution inside the cloned repo without installing anything.</td>
+              </tr>
+              <tr>
+                <td><strong>Python Module</strong></td>
+                <td><code>python3 -m osint_toolkit &lt;target&gt;</code></td>
+                <td>Standard Python invocation directly from source.</td>
+              </tr>
+              <tr>
+                <td><strong>Global CLI</strong></td>
+                <td><code>pip install .</code></td>
+                <td>Installs system-wide <code>osint</code> and <code>osint-toolkit</code> binaries.</td>
+              </tr>
+              <tr>
+                <td><strong>Docker</strong></td>
+                <td><code>docker run -it --rm osint-toolkit &lt;target&gt;</code></td>
+                <td>Isolated container execution.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code># 1. Clone the repository
+git clone https://github.com/DrowLink/osint-toolkit.git
+cd osint-toolkit
+
+# 2. Run directly
+./osint torvalds</code></pre>
+        </div>
+      </section>
+
+      <!-- Quickstart -->
+      <section id="quickstart">
+        <h2 id="quickstart-heading">Quickstart</h2>
+        <p><code>osint-toolkit</code> automatically detects whether your target is a <strong>username</strong> or a <strong>domain</strong>, and renders a clean, hacker-style UTF-8 terminal interface by default.</p>
+
+        <h3>1. Search a Username (Sherlock Mode)</h3>
+        <p>Simply pass any handle or username. It checks 23+ platforms simultaneously:</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>Bash</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code>./osint torvalds</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>Example Output</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code>┌──────────────────────────────────────────────────────────────┐
+│  ⚡ OSINT USERNAME REPORT: @torvalds                          │
+│  Checked: 23 platforms  •  Found: 13                         │
+└──────────────────────────────────────────────────────────────┘
+
+👤 [Profiles Found: 13]
+  ├── [Coding & Tech]
+  │   ├── ✔ Docker Hub:    https://hub.docker.com/u/torvalds
+  │   ├── ✔ GitHub:        https://github.com/torvalds
+  │   ├── ✔ HackerNews:    https://news.ycombinator.com/user?id=torvalds
+  │   ├── ✔ Keybase:       https://keybase.io/torvalds
+  │   ├── ✔ Pastebin:      https://pastebin.com/u/torvalds
+  │   └── ✔ Replit:        https://replit.com/@torvalds
+  ├── [Gaming & Chess]
+  │   ├── ✔ Chess.com:     https://www.chess.com/member/torvalds
+  │   ├── ✔ Lichess:       https://lichess.org/@/torvalds
+  │   └── ✔ Steam:         https://steamcommunity.com/id/torvalds
+  └── [Social & Messaging]
+      ├── ✔ Disqus:        https://disqus.com/by/torvalds/
+      └── ✔ Telegram:      https://t.me/torvalds
+
+❌ [Not Found: 10]
+  └── Codeberg, Dev.to, Behance, Dribbble, Flickr, itch.io, Wikipedia...</code></pre>
+        </div>
+
+        <h3>2. Analyze a Domain</h3>
+        <p>Pass any domain to audit DNS records, mail spoofing protection, WHOIS dates, and TLS certificates:</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>Bash</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code>./osint github.com</code></pre>
+        </div>
+      </section>
+
+      <!-- Username Hunting Engine -->
+      <section id="username-hunting">
+        <h2 id="username-heading">Username Hunting Engine</h2>
+        <p>Built as an ultra-fast, zero-dependency alternative to Sherlock. It checks platforms concurrently using a thread pool of 20 workers, typically finishing in 2–3 seconds.</p>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">💡</span>
+          <div>
+            <strong>Smart False-Positive Prevention:</strong><br>
+            Unlike naive status-code checkers that report non-existent accounts on sites returning HTTP 200 soft-404s, our engine validates response bodies. For example, on Wikipedia, it verifies not only account existence but inspects sockpuppet, block, and user page notices to prevent false positives.
+          </div>
+        </div>
+
+        <h3 id="platforms-directory">Platform Directory</h3>
+        <p>Filter platforms currently queried by the engine:</p>
+
+        <div class="filter-bar">
+          <button class="filter-btn active" data-category="all">All (23)</button>
+          <button class="filter-btn" data-category="Coding & Tech">Coding & Tech</button>
+          <button class="filter-btn" data-category="Social & Messaging">Social & Messaging</button>
+          <button class="filter-btn" data-category="Gaming & Chess">Gaming & Chess</button>
+          <button class="filter-btn" data-category="Design & Audio">Design & Audio</button>
+          <button class="filter-btn" data-category="Publishing">Publishing</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table id="platforms-table">
+            <thead>
+              <tr>
+                <th>Platform</th>
+                <th>Category</th>
+                <th>URL Pattern</th>
+                <th>Detection Method</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-category="Coding & Tech"><td>GitHub</td><td>Coding & Tech</td><td><code>github.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>Docker Hub</td><td>Coding & Tech</td><td><code>hub.docker.com/u/{username}</code></td><td>API Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>Codeberg</td><td>Coding & Tech</td><td><code>codeberg.org/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>Dev.to</td><td>Coding & Tech</td><td><code>dev.to/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>HackerNews</td><td>Coding & Tech</td><td><code>news.ycombinator.com/user?id={username}</code></td><td>Content Absent</td></tr>
+              <tr data-category="Coding & Tech"><td>Keybase</td><td>Coding & Tech</td><td><code>keybase.io/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>Replit</td><td>Coding & Tech</td><td><code>replit.com/@{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Coding & Tech"><td>Pastebin</td><td>Coding & Tech</td><td><code>pastebin.com/u/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Telegram</td><td>Social & Messaging</td><td><code>t.me/{username}</code></td><td>Content Present</td></tr>
+              <tr data-category="Social & Messaging"><td>Disqus</td><td>Social & Messaging</td><td><code>disqus.com/by/{username}/</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Linktree</td><td>Social & Messaging</td><td><code>linktr.ee/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Social & Messaging"><td>Gravatar</td><td>Social & Messaging</td><td><code>gravatar.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Gaming & Chess"><td>Steam</td><td>Gaming & Chess</td><td><code>steamcommunity.com/id/{username}</code></td><td>Content Absent</td></tr>
+              <tr data-category="Gaming & Chess"><td>Chess.com</td><td>Gaming & Chess</td><td><code>chess.com/member/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Gaming & Chess"><td>Lichess</td><td>Gaming & Chess</td><td><code>lichess.org/@/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Gaming & Chess"><td>itch.io</td><td>Gaming & Chess</td><td><code>{username}.itch.io</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>SoundCloud</td><td>Design & Audio</td><td><code>soundcloud.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>Behance</td><td>Design & Audio</td><td><code>behance.net/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>Dribbble</td><td>Design & Audio</td><td><code>dribbble.com/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Design & Audio"><td>Flickr</td><td>Design & Audio</td><td><code>flickr.com/people/{username}</code></td><td>Status Code</td></tr>
+              <tr data-category="Publishing"><td>Substack</td><td>Publishing</td><td><code>{username}.substack.com</code></td><td>Status Code</td></tr>
+              <tr data-category="Publishing"><td>Wikipedia</td><td>Publishing</td><td><code>en.wikipedia.org/wiki/User:{username}</code></td><td>Content Analysis & Sockpuppet Check</td></tr>
+              <tr data-category="Publishing"><td>Instructables</td><td>Publishing</td><td><code>instructables.com/member/{username}</code></td><td>Status Code</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Domain Reconnaissance -->
+      <section id="domain-recon">
+        <h2 id="domain-heading">Domain Reconnaissance</h2>
+        <p>Gathers structured intelligence about a target domain across multiple layers of network and transport infrastructure:</p>
+
+        <h3 id="email-security">Email Security & Anti-Spoofing</h3>
+        <ul>
+          <li><strong>MX Identification:</strong> Automatically categorizes mail servers (Google Workspace, Microsoft 365, ProtonMail, Mimecast, etc.).</li>
+          <li><strong>SPF Evaluation:</strong> Inspects SPF mechanism records (<code>v=spf1</code>) and assesses policy strength (<code>-all</code> HardFail vs <code>~all</code> SoftFail vs insecure <code>+all</code>).</li>
+          <li><strong>DMARC Enforcement:</strong> Validates DMARC records (<code>v=DMARC1</code>), reporting whether email spoofing is enforced (<code>p=reject</code> / <code>p=quarantine</code>) or inactive (<code>p=none</code>).</li>
+        </ul>
+
+        <h3>Additional Infrastructure Checks</h3>
+        <ul>
+          <li><strong>RDAP / WHOIS:</strong> Registrar name, creation date, expiration date, and EPP status flags via official ICANN RDAP endpoints.</li>
+          <li><strong>IP Geolocation & ASN:</strong> Public IP routing ASN, autonomous system owner, country, and city coordinates.</li>
+          <li><strong>TLS Certificate:</strong> Issuer, common names, SANs, cipher suite, negotiated protocol (TLSv1.3), expiration date, and SHA-256 fingerprint.</li>
+          <li><strong>Security Headers:</strong> Audits defensive headers including <code>Strict-Transport-Security</code>, <code>Content-Security-Policy</code>, <code>X-Frame-Options</code>, and cookie security flags (<code>Secure</code>, <code>HttpOnly</code>, <code>SameSite</code>).</li>
+          <li><strong>Subdomain Discovery:</strong> Queries Certificate Transparency logs (crt.sh) for publicly registered hostnames.</li>
+        </ul>
+      </section>
+
+      <!-- Output & Options -->
+      <section id="output-formats">
+        <h2 id="output-heading">Output & Options</h2>
+        <p>By default, interactive terminal executions display the formatted ASCII/Unicode card. For piping or automated processing, pure JSON output is available.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code># Output pure JSON to stdout
+./osint torvalds -j
+
+# Save JSON report to a file while displaying visual summary
+./osint torvalds -o torvalds.json
+
+# Pipe JSON into jq for instant analysis
+./osint google.com -j | jq '.dns.addresses'</code></pre>
+        </div>
+
+        <h3 id="cli-options">CLI Options Reference</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Option</th>
+                <th>Type</th>
+                <th>Default</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>target</code></td><td>Positional</td><td>None</td><td>Domain (e.g. <code>google.com</code>) or username (e.g. <code>drowlink</code>). Auto-detected.</td></tr>
+              <tr><td><code>-u, --username</code></td><td>String</td><td>None</td><td>Explicitly forces username search across social platforms.</td></tr>
+              <tr><td><code>-d, --domain</code></td><td>String</td><td>None</td><td>Explicitly forces domain reconnaissance mode.</td></tr>
+              <tr><td><code>-j, --json</code></td><td>Flag</td><td>False</td><td>Emits raw JSON instead of the visual summary card.</td></tr>
+              <tr><td><code>-o, --output</code></td><td>File Path</td><td>None</td><td>Saves the full JSON report to the specified file.</td></tr>
+              <tr><td><code>-t, --timeout</code></td><td>Float</td><td>8.0</td><td>Global deadline in seconds for all operations.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Safety & Guardrails -->
+      <section id="safety-guardrails">
+        <h2 id="safety-heading">Safety & Resource Limits</h2>
+        <div class="callout callout-security">
+          <span class="callout-icon">🛡️</span>
+          <div>
+            <strong>Passive & Safe By Design:</strong><br>
+            All recon operations are passive, query public metadata exclusively, and operate within strict operating boundaries.
+          </div>
+        </div>
+
+        <ul>
+          <li><strong>Private Target Rejection:</strong> Localhost, loopbacks (<code>127.0.0.1</code>), RFC 1918 private subnets, and non-unicast IPs are rejected immediately.</li>
+          <li><strong>Memory Protection:</strong> All response streams are bounded to a maximum of 256 KiB to prevent denial-of-service or memory spikes.</li>
+          <li><strong>Monotonic Deadlines:</strong> Every network operation runs against an absolute monotonic clock (<code>time.monotonic()</code>). Socket operations cannot stall process exit.</li>
+        </ul>
+      </section>
+
+      <!-- Documentation Policy (Specs) -->
+      <section id="specs-policy">
+        <h2 id="specs-heading">Documentation Policy (Specs)</h2>
+        <p>In accordance with our project engineering standards defined in <code>SPECS.md</code>:</p>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">📋</span>
+          <div>
+            <strong>Mandatory Documentation Rule:</strong><br>
+            Every new feature, flag, data collector, platform detector, or breaking change <strong>MUST be documented</strong> in both <code>docs/index.html</code> and <code>README.md</code> prior to merging or releasing.
+          </div>
+        </div>
+
+        <p>When contributing new features:</p>
+        <ol style="margin-left: 1.5rem; color: var(--text-muted); line-height: 1.8;">
+          <li>Add corresponding unit tests in <code>tests/</code> to preserve 100% test coverage.</li>
+          <li>Update the relevant sections in this interactive documentation site (<code>docs/index.html</code>).</li>
+          <li>If adding a new social platform, append it to the Platform Directory table with its category and detection method.</li>
+          <li>Keep the CLI option tables and examples in <code>README.md</code> in sync.</li>
+        </ol>
+      </section>
+
+      <!-- Testing -->
+      <section id="testing">
+        <h2 id="testing-heading">Testing & Verification</h2>
+        <p>Run the comprehensive test suite locally. All 54 unit tests run without requiring any external packages or active Internet connection:</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>Terminal</span>
+            <button class="copy-btn">📋 Copy</button>
+          </div>
+          <pre><code>python3 -m unittest discover -s tests -v</code></pre>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Right Table of Contents -->
+    <aside class="toc-sidebar">
+      <div class="toc-title">On this page</div>
+      <ul class="toc-list">
+        <li class="toc-item active"><a href="#introduction">Overview</a></li>
+        <li class="toc-item"><a href="#installation-heading">Installation</a></li>
+        <li class="toc-item"><a href="#quickstart-heading">Quickstart</a></li>
+        <li class="toc-item"><a href="#username-heading">Username Hunter</a></li>
+        <li class="toc-item"><a href="#platforms-directory">Platform Directory</a></li>
+        <li class="toc-item"><a href="#domain-heading">Domain Recon</a></li>
+        <li class="toc-item"><a href="#output-heading">Output & Options</a></li>
+        <li class="toc-item"><a href="#safety-heading">Safety & Limits</a></li>
+        <li class="toc-item"><a href="#specs-heading">Documentation Policy</a></li>
+        <li class="toc-item"><a href="#testing-heading">Testing</a></li>
+      </ul>
+    </aside>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      osint-toolkit is free and open source software licensed under the <a href="https://github.com/DrowLink/osint-toolkit/blob/main/LICENSE">MIT License</a>.
+    </p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;">
+      Documentation inspired by <a href="https://sherlockproject.xyz" target="_blank" rel="noopener">Sherlock Project</a> • Built with 100% Standard Web Standards.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
