@@ -31,7 +31,7 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"/>
   <img src="https://img.shields.io/badge/dependencies-zero-brightgreen.svg" alt="Zero Dependencies"/>
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"/>
-  <img src="https://img.shields.io/badge/tests-76%20passing-success.svg" alt="Tests 76 passing"/>
+  <img src="https://img.shields.io/badge/tests-83%20passing-success.svg" alt="Tests 83 passing"/>
 </p>
 
 <p align="center">
@@ -42,12 +42,14 @@
 
 ## Key Highlights
 
-- ⚡ **Zero External Dependencies**: Built 100% on Python's standard library (`urllib`, `socket`, `ssl`, `concurrent.futures`).
+- ⚡ **Zero External Dependencies**: Built 100% on Python's standard library (`urllib`, `socket`, `ssl`, `concurrent.futures`, `csv`).
+- 🌐 **56+ Verified Platforms**: Fast multi-threaded username hunting across 5 major digital ecosystem categories.
+- 🕵️ **OpSec Proxy Support (`-p` / `--proxy`)**: Route scans anonymously via HTTP/HTTPS corporate, SOCKS, or Tor proxies.
+- 📊 **Flexible Export Formats**: Dual output with human-readable terminal tree UI, raw JSON (`-j`), or standard RFC 4180 CSV (`--csv`).
 - 🤖 **Local AI Native (Ollama)**: Automated threat synthesis and identity correlation using local LLMs with zero API keys and complete privacy.
 - 🛡️ **Strictly Passive & Bounded**: No port scans, no brute forcing, and no invasive probing.
 - 🚀 **High Concurrency**: Multi-threaded execution inspects dozens of platforms and records in seconds.
 - 🖥️ **Modern Terminal UI**: Sleek UTF-8 tree hierarchy formatting with colors and status badges.
-- 📁 **Dual Output**: Terminal summary cards or reproducible, structured JSON exports (`-o`).
 
 ---
 
@@ -76,17 +78,21 @@ cd osint-toolkit
 
 ### 1. Username Hunting Mode (Sherlock Style)
 
-Just pass any username or `@handle`. It searches concurrently across 20+ public platforms:
+Just pass any username or `@handle`. It searches concurrently across 56+ verified public platforms:
 
 ```bash
 # Search a username (auto-detected)
 ./osint torvalds
 
-# Or using python module
-python3 -m osint_toolkit torvalds
+# Anonymize scans with an OpSec proxy (Tor / HTTP)
+./osint torvalds --proxy http://127.0.0.1:8080
 
-# Save findings to a JSON file while viewing terminal output
-./osint torvalds -o torvalds.json
+# Export report in standard CSV format
+./osint torvalds --csv
+
+# Save findings to a CSV or JSON file
+./osint torvalds -o findings.csv
+./osint torvalds -o findings.json
 
 # Output pure JSON (for scripting / piping)
 ./osint torvalds -j
@@ -100,11 +106,12 @@ Pass any domain name to analyze DNS, email security, WHOIS/RDAP, certificates, a
 # Analyze domain infrastructure (auto-detected)
 ./osint github.com
 
-# Save complete JSON audit to file
-./osint github.com -o github.json
+# Save complete audit to CSV or JSON
+./osint github.com -o audit.csv
+./osint github.com -o audit.json
 
-# Output pure JSON
-./osint github.com -j
+# Route through proxy
+./osint github.com --proxy http://127.0.0.1:8080
 ```
 
 ### 3. Specialized Threat & Intel Services
@@ -114,11 +121,11 @@ Run standalone commands or subcommands for deep external intelligence:
 ```bash
 # Shodan (zero-auth via InternetDB, or SHODAN_API_KEY)
 ./osint shodan 8.8.8.8
-./search_shodan github.com
+./search_shodan github.com --csv
 
 # IP2Location (zero-auth public tier, or IP2LOCATION_API_KEY)
 ./osint ip2location 8.8.8.8
-./search_ip2location 1.1.1.1
+./search_ip2location 1.1.1.1 --proxy http://127.0.0.1:8080
 
 # VirusTotal (with VIRUSTOTAL_API_KEY or guided unauthenticated mode)
 ./osint virustotal google.com
@@ -159,8 +166,8 @@ from osint_toolkit import (
     generate_ai_briefing,
 )
 
-# Search usernames
-profiles = search_username("torvalds")
+# Search usernames with proxy support
+profiles = search_username("torvalds", proxy="http://127.0.0.1:8080")
 
 # Generate local AI intelligence briefing
 ai_summary = generate_ai_briefing(profiles, model="llama3")
@@ -181,12 +188,12 @@ print(ai_summary["briefing"])
 - **TLS Certificate**: Subject, issuer, cipher suite, protocol, expiry, days remaining, and Subject Alternative Names (SANs).
 - **Public Policy Files**: Presence, contacts, and sitemaps in `/.well-known/security.txt` and `/robots.txt`.
 
-### Username Mode
-- **Coding & Tech**: GitHub, Codeberg, Docker Hub, Dev.to, Keybase, HackerNews, Replit, Pastebin.
-- **Social & Messaging**: Telegram, Disqus, Linktree, Gravatar.
-- **Gaming & Chess**: Steam, Chess.com, Lichess, itch.io.
-- **Design & Audio**: Behance, Dribbble, Flickr, SoundCloud.
-- **Knowledge & Publishing**: Substack, Wikipedia *(with sockpuppet/blocked account detection)*, Instructables.
+### Username Mode (56 Verified Platforms)
+- **Coding & Tech (17)**: GitHub, GitLab, Codeberg, Bitbucket, Docker Hub, PyPI, npm, Crates.io, Dev.to, Hashnode, Keybase, HackerNews, Kaggle, LeetCode, TryHackMe, Replit, Pastebin.
+- **Social & Messaging (13)**: Telegram, Reddit, Mastodon, Bluesky, Disqus, Linktree, Gravatar, Pinterest, BuyMeACoffee, Ko-fi, ProductHunt, About.me, Quora.
+- **Gaming & Entertainment (9)**: Steam, Chess.com, Lichess, itch.io, Roblox, Speedrun.com, osu!, Letterboxd, Chessgames.
+- **Design & Audio (10)**: SoundCloud, Spotify, Bandcamp, Behance, Dribbble, Flickr, 500px, DeviantArt, Unsplash, Mixcloud.
+- **Publishing & Knowledge (7)**: Substack, Medium, Wikipedia *(with sockpuppet/blocked account detection)*, Instructables, Goodreads, Duolingo, Patreon.
 
 ---
 
@@ -194,8 +201,10 @@ print(ai_summary["briefing"])
 
 ```console
 $ ./osint --help
-usage: osint-toolkit [-h] [-u USERNAME] [-d DOMAIN] [-t TIMEOUT] [-o OUTPUT]
-                     [-j] [-s] [target]
+usage: osint-toolkit [-h] [-u USERNAME] [-d DOMAIN] [-p PROXY] [--csv]
+                     [-t TIMEOUT] [-o OUTPUT] [-j] [-s] [--ai]
+                     [--ai-model AI_MODEL] [--ai-endpoint AI_ENDPOINT]
+                     [target]
 
 Fast, dependency-free OSINT toolkit for domains and usernames.
 
@@ -206,10 +215,15 @@ options:
   -h, --help            Show this help message and exit
   -u, --username USER   Explicitly search username across public platforms
   -d, --domain DOMAIN   Explicitly analyze domain infrastructure
+  -p, --proxy PROXY     Proxy URL for anonymous scanning (e.g. http://127.0.0.1:8080)
+  --csv                 Output report in standard CSV format
   -t, --timeout SECS    Operation deadline in seconds (default: 8.0)
-  -o, --output FILE     Path to write JSON report output (default: stdout)
+  -o, --output FILE     Path to write report output (JSON or CSV based on extension/flag)
   -j, --json            Output raw JSON instead of human-readable summary
   -s, --summary         Display human-readable summary card (default in terminal)
+  --ai, --ollama        Synthesize report with local AI (Ollama) intelligence briefing
+  --ai-model AI_MODEL   Local LLM model to use (default: llama3 or first installed model)
+  --ai-endpoint URL     Ollama API endpoint (default: http://localhost:11434)
 ```
 
 ---
@@ -226,7 +240,7 @@ options:
 
 ## Tests
 
-Run the complete test suite (54 unit tests covering domain collectors, DNS parsers, CLI, and username search):
+Run the complete test suite (83 unit tests covering collectors, parsers, CLI, username search, AI, and intelligence services):
 
 ```bash
 python3 -m unittest discover -s tests -v
