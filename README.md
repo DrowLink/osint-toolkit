@@ -260,9 +260,30 @@ Use this tool only for lawful research involving public internet resources. Foll
 
 ---
 
+## Roadmap & Future Milestones
+
+We are actively evolving this toolkit into a premier, lightweight intelligence suite. Here is what's planned:
+
+- [ ] **Interactive HTML Dossier (`--html <file>`)**: Export a client-ready, self-contained single-file HTML report with interactive cards and dark mode.
+- [ ] **Passive Subdomain Enumeration (`--subdomains`)**: Query public Certificate Transparency logs (crt.sh) using pure standard library HTTPS requests.
+- [ ] **Batch Targets Ingestion (`-f targets.txt`)**: Concurrent multi-target scanning for batch usernames or domain asset inventories.
+- [ ] **100+ Verified Platforms**: Expand username hunters to include cybersecurity platforms (HackTheBox, TryHackMe), developer registries (PyPI, npm, DockerHub), and decentralized networks (Mastodon, Bluesky).
+- [ ] **Visual Graph Export (`--graph <format>`)**: Export relationships (Domains → IPs → Nameservers → Accounts) to Mermaid.js, Graphviz DOT, or Gephi formats.
+- [ ] **Platform CI Liveness Monitor**: Automated weekly GitHub Actions cron to detect modified platform markup and prevent silent false negatives.
+
+---
+
 ## Contributing
 
-Contributions, bug reports, and site additions are welcome! Please check [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We love contributions! Whether you're adding new platform detectors, fixing false positives, improving documentation, or optimizing network throughput:
+
+1. Check our [Contributing Guide](CONTRIBUTING.md) for architectural guidelines and coding standards.
+2. Pick an open issue or an item from our [Roadmap](#roadmap--future-milestones).
+3. Ensure all changes strictly maintain our **zero external dependencies** rule and pass all unit tests:
+   ```bash
+   python3 -m unittest discover -s tests -v
+   ```
+4. Submit a Pull Request. Every contribution is reviewed promptly!
 
 ---
 
