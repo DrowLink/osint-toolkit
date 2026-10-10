@@ -64,6 +64,7 @@ def _http_get_json(
     *,
     headers: dict[str, str] | None = None,
     timeout: float = 8.0,
+    proxy: str | None = None,
 ) -> tuple[int, dict[str, Any] | None, str | None]:
     """Execute a bounded HTTP GET request returning status code, parsed JSON, or raw body."""
     req_headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
@@ -71,8 +72,16 @@ def _http_get_json(
         req_headers.update(headers)
 
     req = urllib.request.Request(url, headers=req_headers, method="GET")
+    if proxy:
+        proxy_clean = proxy.strip()
+        opener = urllib.request.build_opener(
+            urllib.request.ProxyHandler({"http": proxy_clean, "https": proxy_clean})
+        )
+    else:
+        opener = urllib.request.build_opener()
+
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with opener.open(req, timeout=timeout) as resp:
             status = resp.status
             body = resp.read(MAX_RESPONSE_BYTES).decode("utf-8", errors="replace")
             try:
@@ -101,6 +110,7 @@ def search_shodan(
     *,
     api_key: str | None = None,
     timeout: float = 8.0,
+    proxy: str | None = None,
 ) -> dict[str, Any]:
     """Query Shodan for host intelligence, exposed ports, and known CVEs.
 
@@ -112,7 +122,7 @@ def search_shodan(
 
     if key:
         url = f"https://api.shodan.io/shodan/host/{ip}?key={key}"
-        status, data, _ = _http_get_json(url, timeout=timeout)
+        status, data, _ = _http_get_json(url, timeout=timeout, proxy=proxy)
         if status == 200 and isinstance(data, dict):
             return {
                 "service": "shodan",
@@ -133,7 +143,7 @@ def search_shodan(
 
     # Free InternetDB fallback (zero-auth, no key needed)
     url = f"https://internetdb.shodan.io/{ip}"
-    status, data, _ = _http_get_json(url, timeout=timeout)
+    status, data, _ = _http_get_json(url, timeout=timeout, proxy=proxy)
 
     if status == 404:
         return {
@@ -142,6 +152,7 @@ def search_shodan(
             "ip": ip,
             "source": "internetdb",
             "found": False,
+            "proxy_used": proxy if proxy else None,
             "ports": [],
             "cpes": [],
             "hostnames": [],
@@ -158,6 +169,7 @@ def search_shodan(
             "ip": ip,
             "source": "internetdb",
             "found": True,
+            "proxy_used": proxy if proxy else None,
             "ports": sorted(data.get("ports", [])),
             "cpes": data.get("cpes", []),
             "hostnames": data.get("hostnames", []),
@@ -172,6 +184,7 @@ def search_shodan(
         "ip": ip,
         "source": "internetdb",
         "found": False,
+        "proxy_used": proxy if proxy else None,
         "error": f"Shodan returned status {status}",
         "web_url": f"https://www.shodan.io/host/{ip}",
     }
@@ -186,6 +199,7 @@ def search_ip2location(
     *,
     api_key: str | None = None,
     timeout: float = 8.0,
+    proxy: str | None = None,
 ) -> dict[str, Any]:
     """Query IP2Location for comprehensive IP geolocation, ASN, and proxy detection.
 
@@ -198,7 +212,7 @@ def search_ip2location(
     if key:
         url += f"&key={key}"
 
-    status, data, _ = _http_get_json(url, timeout=timeout)
+    status, data, _ = _http_get_json(url, timeout=timeout, proxy=proxy)
 
     if status == 200 and isinstance(data, dict):
         return {
@@ -206,6 +220,7 @@ def search_ip2location(
             "target": target,
             "ip": ip,
             "found": True,
+            "proxy_used": proxy if proxy else None,
             "country_code": data.get("country_code"),
             "country_name": data.get("country_name"),
             "region_name": data.get("region_name"),
@@ -225,6 +240,7 @@ def search_ip2location(
         "target": target,
         "ip": ip,
         "found": False,
+        "proxy_used": proxy if proxy else None,
         "error": f"IP2Location returned status {status}",
         "web_url": f"https://www.ip2location.io/demo/{ip}",
     }
@@ -239,6 +255,7 @@ def search_virustotal(
     *,
     api_key: str | None = None,
     timeout: float = 8.0,
+    proxy: str | None = None,
 ) -> dict[str, Any]:
     """Query VirusTotal v3 API for reputation, malware, and detection statistics.
 
@@ -263,6 +280,7 @@ def search_virustotal(
             "type": "ip" if is_ip else "domain",
             "authenticated": False,
             "found": None,
+            "proxy_used": proxy if proxy else None,
             "web_url": web_url,
             "message": (
                 "VirusTotal API v3 requires an API key. "
@@ -271,7 +289,7 @@ def search_virustotal(
         }
 
     url = f"https://www.virustotal.com/api/v3/{endpoint_type}/{clean}"
-    status, data, _ = _http_get_json(url, headers={"x-apikey": key}, timeout=timeout)
+    status, data, _ = _http_get_json(url, headers={"x-apikey": key}, timeout=timeout, proxy=proxy)
 
     if status == 200 and isinstance(data, dict):
         attr = data.get("data", {}).get("attributes", {})
@@ -288,6 +306,7 @@ def search_virustotal(
             "type": "ip" if is_ip else "domain",
             "authenticated": True,
             "found": True,
+            "proxy_used": proxy if proxy else None,
             "stats": stats,
             "reputation": attr.get("reputation", 0),
             "malicious_count": stats.get("malicious", 0),
@@ -307,6 +326,7 @@ def search_virustotal(
             "type": "ip" if is_ip else "domain",
             "authenticated": True,
             "found": False,
+            "proxy_used": proxy if proxy else None,
             "message": "Resource not found in VirusTotal database",
             "web_url": web_url,
         }
@@ -318,6 +338,7 @@ def search_virustotal(
         "type": "ip" if is_ip else "domain",
         "authenticated": True,
         "found": False,
+        "proxy_used": proxy if proxy else None,
         "error": f"VirusTotal returned status {status}",
         "web_url": web_url,
     }
@@ -333,6 +354,7 @@ def search_censys(
     api_id: str | None = None,
     api_secret: str | None = None,
     timeout: float = 8.0,
+    proxy: str | None = None,
 ) -> dict[str, Any]:
     """Query Censys Search API v2 for host infrastructure, services, and certificates.
 
@@ -351,6 +373,7 @@ def search_censys(
             "ip": ip,
             "authenticated": False,
             "found": None,
+            "proxy_used": proxy if proxy else None,
             "web_url": web_url,
             "message": (
                 "Censys Search API requires API credentials. "
@@ -367,6 +390,7 @@ def search_censys(
         url,
         headers={"Authorization": f"Basic {auth_b64}"},
         timeout=timeout,
+        proxy=proxy,
     )
 
     if status == 200 and isinstance(data, dict):

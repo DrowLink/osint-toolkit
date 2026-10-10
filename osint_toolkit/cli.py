@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 import sys
 from collections.abc import Callable, Sequence
@@ -47,6 +49,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Explicitly analyze domain infrastructure",
     )
     parser.add_argument(
+        "-p",
+        "--proxy",
+        type=str,
+        default=None,
+        help="Proxy URL for anonymous scanning (e.g. http://127.0.0.1:8080)",
+    )
+    parser.add_argument(
+        "--csv",
+        action="store_true",
+        help="Output report in standard CSV format",
+    )
+    parser.add_argument(
         "-t",
         "--timeout",
         type=float,
@@ -58,7 +72,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--output",
         type=str,
         default=None,
-        help="Path to write JSON report output (default: stdout)",
+        help="Path to write report output (JSON or CSV based on extension/flag)",
     )
     parser.add_argument(
         "-j",

@@ -19,7 +19,7 @@ _USERNAME_RE = re.compile(r"^[a-zA-Z0-9_\-\.]{1,64}$")
 
 # Curated registry of platforms with verified passive detection
 SITES: list[dict[str, Any]] = [
-    # Coding & Development
+    # Coding & Tech (17)
     {
         "name": "GitHub",
         "category": "Coding & Tech",
@@ -27,9 +27,21 @@ SITES: list[dict[str, Any]] = [
         "type": "status_code",
     },
     {
+        "name": "GitLab",
+        "category": "Coding & Tech",
+        "url": "https://gitlab.com/{username}",
+        "type": "status_code",
+    },
+    {
         "name": "Codeberg",
         "category": "Coding & Tech",
         "url": "https://codeberg.org/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Bitbucket",
+        "category": "Coding & Tech",
+        "url": "https://bitbucket.org/{username}/",
         "type": "status_code",
     },
     {
@@ -40,9 +52,34 @@ SITES: list[dict[str, Any]] = [
         "type": "status_code",
     },
     {
+        "name": "PyPI",
+        "category": "Coding & Tech",
+        "url": "https://pypi.org/user/{username}/",
+        "type": "status_code",
+    },
+    {
+        "name": "npm",
+        "category": "Coding & Tech",
+        "url": "https://www.npmjs.com/~{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Crates.io",
+        "category": "Coding & Tech",
+        "url": "https://crates.io/api/v1/users/{username}",
+        "profile_url": "https://crates.io/users/{username}",
+        "type": "status_code",
+    },
+    {
         "name": "Dev.to",
         "category": "Coding & Tech",
         "url": "https://dev.to/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Hashnode",
+        "category": "Coding & Tech",
+        "url": "https://hashnode.com/@{username}",
         "type": "status_code",
     },
     {
@@ -59,6 +96,24 @@ SITES: list[dict[str, Any]] = [
         "absent_pattern": "No such user",
     },
     {
+        "name": "Kaggle",
+        "category": "Coding & Tech",
+        "url": "https://www.kaggle.com/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "LeetCode",
+        "category": "Coding & Tech",
+        "url": "https://leetcode.com/{username}/",
+        "type": "status_code",
+    },
+    {
+        "name": "TryHackMe",
+        "category": "Coding & Tech",
+        "url": "https://tryhackme.com/p/{username}",
+        "type": "status_code",
+    },
+    {
         "name": "Replit",
         "category": "Coding & Tech",
         "url": "https://replit.com/@{username}",
@@ -70,13 +125,33 @@ SITES: list[dict[str, Any]] = [
         "url": "https://pastebin.com/u/{username}",
         "type": "status_code",
     },
-    # Social & Messaging
+
+    # Social & Messaging (13)
     {
         "name": "Telegram",
         "category": "Social & Messaging",
         "url": "https://t.me/{username}",
         "type": "message",
         "present_pattern": "tgme_page_extra",
+    },
+    {
+        "name": "Reddit",
+        "category": "Social & Messaging",
+        "url": "https://www.reddit.com/user/{username}/about.json",
+        "profile_url": "https://www.reddit.com/user/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Mastodon",
+        "category": "Social & Messaging",
+        "url": "https://mastodon.social/@{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Bluesky",
+        "category": "Social & Messaging",
+        "url": "https://bsky.app/profile/{username}.bsky.social",
+        "type": "status_code",
     },
     {
         "name": "Disqus",
@@ -97,35 +172,122 @@ SITES: list[dict[str, Any]] = [
         "profile_url": "https://gravatar.com/{username}",
         "type": "status_code",
     },
-    # Gaming & Entertainment
+    {
+        "name": "Pinterest",
+        "category": "Social & Messaging",
+        "url": "https://www.pinterest.com/{username}/",
+        "type": "status_code",
+    },
+    {
+        "name": "BuyMeACoffee",
+        "category": "Social & Messaging",
+        "url": "https://www.buymeacoffee.com/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Ko-fi",
+        "category": "Social & Messaging",
+        "url": "https://ko-fi.com/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "ProductHunt",
+        "category": "Social & Messaging",
+        "url": "https://www.producthunt.com/@{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "About.me",
+        "category": "Social & Messaging",
+        "url": "https://about.me/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Quora",
+        "category": "Social & Messaging",
+        "url": "https://www.quora.com/profile/{username}",
+        "type": "status_code",
+    },
+
+    # Gaming & Entertainment (9)
     {
         "name": "Steam",
-        "category": "Gaming & Chess",
+        "category": "Gaming & Entertainment",
         "url": "https://steamcommunity.com/id/{username}",
         "type": "message",
         "absent_pattern": "The specified profile could not be found",
     },
     {
         "name": "Chess.com",
-        "category": "Gaming & Chess",
+        "category": "Gaming & Entertainment",
         "url": "https://api.chess.com/pub/player/{username}",
         "profile_url": "https://www.chess.com/member/{username}",
         "type": "status_code",
     },
     {
         "name": "Lichess",
-        "category": "Gaming & Chess",
+        "category": "Gaming & Entertainment",
         "url": "https://lichess.org/api/user/{username}",
         "profile_url": "https://lichess.org/@/{username}",
         "type": "status_code",
     },
     {
         "name": "itch.io",
-        "category": "Gaming & Chess",
+        "category": "Gaming & Entertainment",
         "url": "https://{username}.itch.io",
         "type": "status_code",
     },
-    # Creative & Publishing
+    {
+        "name": "Roblox",
+        "category": "Gaming & Entertainment",
+        "url": "https://www.roblox.com/user.aspx?username={username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Speedrun.com",
+        "category": "Gaming & Entertainment",
+        "url": "https://www.speedrun.com/users/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "osu!",
+        "category": "Gaming & Entertainment",
+        "url": "https://osu.ppy.sh/users/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Letterboxd",
+        "category": "Gaming & Entertainment",
+        "url": "https://letterboxd.com/{username}/",
+        "type": "status_code",
+    },
+    {
+        "name": "Chessgames",
+        "category": "Gaming & Entertainment",
+        "url": "https://www.chessgames.com/perl/chessplayer?pid={username}",
+        "type": "message",
+        "absent_pattern": "not found in our database",
+    },
+
+    # Design & Audio (10)
+    {
+        "name": "SoundCloud",
+        "category": "Design & Audio",
+        "url": "https://soundcloud.com/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Spotify",
+        "category": "Design & Audio",
+        "url": "https://open.spotify.com/user/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Bandcamp",
+        "category": "Design & Audio",
+        "url": "https://{username}.bandcamp.com",
+        "type": "status_code",
+    },
     {
         "name": "Behance",
         "category": "Design & Audio",
@@ -145,28 +307,72 @@ SITES: list[dict[str, Any]] = [
         "type": "status_code",
     },
     {
-        "name": "SoundCloud",
+        "name": "500px",
         "category": "Design & Audio",
-        "url": "https://soundcloud.com/{username}",
+        "url": "https://500px.com/p/{username}",
         "type": "status_code",
     },
     {
+        "name": "DeviantArt",
+        "category": "Design & Audio",
+        "url": "https://www.deviantart.com/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Unsplash",
+        "category": "Design & Audio",
+        "url": "https://unsplash.com/@{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Mixcloud",
+        "category": "Design & Audio",
+        "url": "https://www.mixcloud.com/{username}/",
+        "type": "status_code",
+    },
+
+    # Publishing & Knowledge (7)
+    {
         "name": "Substack",
-        "category": "Publishing",
+        "category": "Publishing & Knowledge",
         "url": "https://{username}.substack.com",
         "type": "status_code",
     },
     {
+        "name": "Medium",
+        "category": "Publishing & Knowledge",
+        "url": "https://medium.com/@{username}",
+        "type": "status_code",
+    },
+    {
         "name": "Wikipedia",
-        "category": "Knowledge",
+        "category": "Publishing & Knowledge",
         "url": "https://en.wikipedia.org/wiki/User:{username}",
         "type": "message",
         "absent_pattern": ("sockpuppet", "blocked indefinitely", "has been blocked"),
     },
     {
         "name": "Instructables",
-        "category": "Knowledge",
+        "category": "Publishing & Knowledge",
         "url": "https://www.instructables.com/member/{username}/",
+        "type": "status_code",
+    },
+    {
+        "name": "Goodreads",
+        "category": "Publishing & Knowledge",
+        "url": "https://www.goodreads.com/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Duolingo",
+        "category": "Publishing & Knowledge",
+        "url": "https://www.duolingo.com/profile/{username}",
+        "type": "status_code",
+    },
+    {
+        "name": "Patreon",
+        "category": "Publishing & Knowledge",
+        "url": "https://www.patreon.com/{username}",
         "type": "status_code",
     },
 ]
@@ -193,6 +399,7 @@ def check_site(
     username: str,
     *,
     timeout: float = 6.0,
+    proxy: str | None = None,
     http_requester: Callable[..., tuple[int, str]] | None = None,
 ) -> dict[str, Any]:
     """Check whether a username exists on a specific target site."""
@@ -204,7 +411,10 @@ def check_site(
 
     if http_requester is not None:
         try:
-            status_code, body = http_requester(target_url, timeout=timeout)
+            try:
+                status_code, body = http_requester(target_url, timeout=timeout, proxy=proxy)
+            except TypeError:
+                status_code, body = http_requester(target_url, timeout=timeout)
         except Exception as exc:
             return {
                 "name": name,
@@ -222,8 +432,16 @@ def check_site(
                 "Accept-Language": "en-US,en;q=0.9",
             },
         )
+        if proxy:
+            proxy_clean = proxy.strip()
+            opener = urllib.request.build_opener(
+                urllib.request.ProxyHandler({"http": proxy_clean, "https": proxy_clean})
+            )
+        else:
+            opener = urllib.request.build_opener()
+
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as response:
+            with opener.open(req, timeout=timeout) as response:
                 status_code = response.status
                 body = response.read(65536).decode("utf-8", errors="replace")
         except urllib.error.HTTPError as exc:
@@ -273,6 +491,7 @@ def search_username(
     sites: list[dict[str, Any]] | None = None,
     max_workers: int = 20,
     timeout: float = 6.0,
+    proxy: str | None = None,
     checker: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Search for a username across public platforms concurrently."""
@@ -280,10 +499,18 @@ def search_username(
     site_list = sites if sites is not None else SITES
     site_checker = checker if checker is not None else check_site
 
+    def _call_checker(site_item: dict[str, Any]) -> dict[str, Any]:
+        if checker is not None:
+            try:
+                return checker(site_item, valid_username, timeout=timeout, proxy=proxy)
+            except TypeError:
+                return checker(site_item, valid_username, timeout=timeout)
+        return check_site(site_item, valid_username, timeout=timeout, proxy=proxy)
+
     results: list[dict[str, Any]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_map = {
-            executor.submit(site_checker, site, valid_username, timeout=timeout): site
+            executor.submit(_call_checker, site): site
             for site in site_list
         }
         for future in concurrent.futures.as_completed(future_map):
@@ -311,6 +538,7 @@ def search_username(
         "mode": "username",
         "target": valid_username,
         "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "proxy_used": proxy if proxy else None,
         "total_checked": len(results),
         "found_count": len(found),
         "found": found,
